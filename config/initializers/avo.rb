@@ -15,6 +15,7 @@ Avo.configure do |config|
 
   ## == Licensing ==
   config.license_key = ENV['AVO_LICENSE_KEY']
+  config.exclude_from_status = ["license_key"]
 
   ## == Set the context ==
   config.set_context do
