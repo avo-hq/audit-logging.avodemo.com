@@ -1,33 +1,56 @@
 GEM
   remote: https://packager.dev/avo-hq/
   specs:
-    avo-advanced (3.26.2)
-      avo (= 3.26.2)
-      avo-dynamic_filters (= 3.26.2)
-      avo-pro (= 3.26.2)
+    avo (4.0.41.alpha)
+      actionview (>= 6.1)
+      active_link_to
+      activerecord (>= 6.1)
+      activesupport (>= 6.1)
+      addressable
+      avo-icons (>= 0.1.1)
+      docile
+      meta-tags
+      pagy (>= 7.0.0, < 43)
+      prop_initializer (>= 0.2.0)
+      turbo-rails (>= 2.0.0)
+      turbo_power (>= 0.6.0)
+      view_component (>= 3.7.0)
       zeitwerk (>= 2.6.12)
-    avo-audit_logging (0.0.13)
+    avo-advanced (4.0.41.alpha)
+      avo (= 4.0.41.alpha)
+      avo-dynamic_filters (= 4.0.41.alpha)
+      avo-licensing (= 1.0.2.alpha)
+      avo-pro (= 4.0.41.alpha)
+      zeitwerk (>= 2.6.12)
+    avo-audit_logging (4.0.0.alpha)
       avo (>= 3.23.1)
       avo-diff_field (>= 0.0.5)
       zeitwerk (>= 2.6.12)
-    avo-dashboards (3.26.2)
-      avo (= 3.26.2)
+    avo-dashboards (4.0.41.alpha)
+      avo (= 4.0.41.alpha)
+      avo-licensing (= 1.0.2.alpha)
       turbo-rails
       view_component (>= 3.7.0)
       zeitwerk (>= 2.6.12)
-    avo-dynamic_filters (3.26.2)
-      avo (= 3.26.2)
+    avo-dynamic_filters (4.0.41.alpha)
+      avo (= 4.0.41.alpha)
+      avo-licensing (= 1.0.2.alpha)
       ransack (>= 4.2.0)
       view_component (>= 3.7.0)
       zeitwerk (>= 2.6.12)
-    avo-menu (3.26.2)
-      avo (= 3.26.2)
+    avo-licensing (1.0.2.alpha)
+      avo (>= 4.0.37.alpha)
+      zeitwerk (>= 2.6.12)
+    avo-menu (4.0.41.alpha)
+      avo (= 4.0.41.alpha)
+      avo-licensing (= 1.0.2.alpha)
       docile
       zeitwerk (>= 2.6.12)
-    avo-pro (3.26.2)
-      avo (= 3.26.2)
-      avo-dashboards (= 3.26.2)
-      avo-menu (= 3.26.2)
+    avo-pro (4.0.41.alpha)
+      avo (= 4.0.41.alpha)
+      avo-dashboards (= 4.0.41.alpha)
+      avo-licensing (= 1.0.2.alpha)
+      avo-menu (= 4.0.41.alpha)
       zeitwerk (>= 2.6.12)
 
 GEM
@@ -112,21 +135,6 @@ GEM
       activerecord (>= 3.2, < 8.0)
       rake (>= 10.4, < 14.0)
     ast (2.4.2)
-    avo (3.26.2)
-      actionview (>= 6.1)
-      active_link_to
-      activerecord (>= 6.1)
-      activesupport (>= 6.1)
-      addressable
-      avo-icons (>= 0.1.1)
-      docile
-      meta-tags
-      pagy (>= 7.0.0, < 43)
-      prop_initializer (>= 0.2.0)
-      turbo-rails (>= 2.0.0)
-      turbo_power (>= 0.6.0)
-      view_component (>= 3.7.0)
-      zeitwerk (>= 2.6.12)
     avo-diff_field (0.0.5)
       diffy
     avo-icons (0.1.1)
@@ -208,8 +216,8 @@ GEM
       net-smtp
     marcel (1.0.4)
     matrix (0.4.2)
-    meta-tags (2.22.2)
-      actionpack (>= 6.0.0, < 8.2)
+    meta-tags (2.22.3)
+      actionpack (>= 6.0.0)
     mini_mime (1.1.5)
     mini_portile2 (2.8.9)
     minitest (5.26.0)
@@ -410,8 +418,9 @@ GEM
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.6.0)
     useragent (0.16.11)
-    view_component (4.1.0)
-      activesupport (>= 7.1.0, < 8.2)
+    view_component (4.2.0)
+      actionview (>= 7.1.0)
+      activesupport (>= 7.1.0)
       concurrent-ruby (~> 1)
     warden (1.2.9)
       rack (>= 2.0.9)
@@ -446,9 +455,10 @@ PLATFORMS
 
 DEPENDENCIES
   annotate (~> 3.2)
-  avo (>= 3.2.1)
-  avo-advanced (>= 3.2.0)!
-  avo-audit_logging!
+  avo (= 4.0.41.alpha)!
+  avo-advanced (= 4.0.41.alpha)!
+  avo-audit_logging (= 4.0.0.alpha)!
+  avo-licensing (= 1.0.2.alpha)!
   avo-money_field
   bootsnap
   brakeman

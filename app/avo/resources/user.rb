@@ -15,9 +15,11 @@ class Avo::Resources::User < Avo::BaseResource
   }
 
   def fields
-    main_panel do
-      field :id, as: :id, link_to_record: true
-      field :email, as: :text, link_to_record: true
+    panel do
+      card do
+        field :id, as: :id, link_to_record: true
+        field :email, as: :text, link_to_record: true
+      end
       
       if Avo::AuditLogging.configuration.enabled?
         sidebar do
