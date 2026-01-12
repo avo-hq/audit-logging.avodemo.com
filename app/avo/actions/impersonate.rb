@@ -1,6 +1,6 @@
 class Avo::Actions::Impersonate < Avo::BaseAction
   self.name = "Impersonate"
-  self.no_confirmation = true
+  self.confirmation = false
 
   def handle(query:, fields:, current_user:, resource:, **args)
     if query.size > 1

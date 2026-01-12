@@ -6,18 +6,20 @@ class Avo::Resources::Product < Avo::BaseResource
   self.title = :name
 
   def fields
-    main_panel do
-      field :id, as: :id
-      field :name, as: :text, filterable: true
-      field :manufacturer, as: :text, sortable: true, filterable: {
-        type: :select, options: ::Product.all.pluck(:manufacturer).uniq
-      }
-      field :price, as: :money, currencies: %w[USD]
-      field :quantity, as: :number, step: 1
-      field :description, as: :trix
-      field :is_featured, as: :boolean
-      field :category, as: :select, enum: ::Product.categories
-      field :warehouse, as: :belongs_to
+    panel do
+      card do
+        field :id, as: :id
+        field :name, as: :text, filterable: true
+        field :manufacturer, as: :text, sortable: true, filterable: {
+          type: :select, options: ::Product.all.pluck(:manufacturer).uniq
+        }
+        field :price, as: :money, currencies: %w[USD]
+        field :quantity, as: :number, step: 1
+        field :description, as: :trix
+        field :is_featured, as: :boolean
+        field :category, as: :select, enum: ::Product.categories
+        field :warehouse, as: :belongs_to
+      end
 
       if Avo::AuditLogging.configuration.enabled?
         sidebar do
