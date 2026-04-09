@@ -56,20 +56,24 @@ group :test do
   gem "selenium-webdriver"
 end
 
-gem "avo", "4.0.41.alpha", source: "https://packager.dev/avo-hq/"
-gem "avo-advanced", "4.0.41.alpha", source: "https://packager.dev/avo-hq/"
-gem "avo-licensing", "1.0.2.alpha", source: "https://packager.dev/avo-hq/"
+gem "avo", ">= 4.0.0.beta"
+
+source "https://packager.dev/avo-hq/" do
+  gem "avo-advanced", ">= 4.0.0.beta"
+  gem "avo-licensing", ">= 4.0.0.beta"
+  gem "avo-audit_logging", ">= 4.0.0.beta"
+end
+
 gem "devise", "~> 4.9"
-gem "tailwindcss-rails", "~> 3.0"
+gem "tailwindcss-rails", "~> 4.0"
 gem "progressbar", "~> 1.13"
 gem "factory_bot_rails", "~> 6.2"
 gem "faker", "~> 3.1", ">= 3.1.1"
 gem "annotate", "~> 3.2"
 gem "pretender", "~> 0.5.0"
 
-gem "avo-audit_logging", "4.0.0.alpha", source: "https://packager.dev/avo-hq/"
 
-gem "paper_trail", "~> 16.0"
+gem "paper_trail", "~> 17.0"
 
 # Money field and monetization
 gem "avo-money_field"
