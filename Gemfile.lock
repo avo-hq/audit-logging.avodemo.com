@@ -30,7 +30,7 @@ GEM
       ransack (>= 4.2.0)
       view_component (>= 3.7.0)
       zeitwerk (>= 2.6.12)
-    avo-licensing (4.0.3)
+    avo-licensing (4.0.4)
       avo (>= 4.0.8)
       zeitwerk (>= 2.6.12)
     avo-menu (4.0.3)
