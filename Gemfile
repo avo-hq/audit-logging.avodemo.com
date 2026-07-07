@@ -59,7 +59,9 @@ end
 gem "avo", ">= 4.0.0.beta"
 
 source "https://packager.dev/avo-hq/" do
-  gem "avo-advanced", ">= 4.0.0.beta"
+  gem "avo-dashboards", ">= 4.0.0"
+  gem "avo-menu", ">= 4.0.0"
+  gem "avo-dynamic_filters", ">= 4.0.0"
   gem "avo-licensing", ">= 4.0.0.beta"
   gem "avo-audit_logging", ">= 4.0.0.beta"
 end

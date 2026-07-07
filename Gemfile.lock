@@ -1,12 +1,6 @@
 GEM
   remote: https://packager.dev/avo-hq/
   specs:
-    avo-advanced (4.0.0.beta.13)
-      avo (>= 4.0.0.beta.46)
-      avo-dynamic_filters (>= 4.0.0.beta.13)
-      avo-licensing (>= 4.0.0.beta.9)
-      avo-pro (>= 4.0.0.beta.23)
-      zeitwerk (>= 2.6.12)
     avo-audit_logging (4.0.0)
       avo (>= 4.0.0)
       avo-diff_field (>= 0.0.5)
@@ -31,12 +25,6 @@ GEM
       avo (>= 4.0.2)
       avo-licensing (>= 4.0.1)
       docile
-      zeitwerk (>= 2.6.12)
-    avo-pro (4.0.0.beta.23)
-      avo (>= 4.0.0.beta.44)
-      avo-dashboards (>= 4.0.0.beta.15)
-      avo-licensing (>= 4.0.0.beta.9)
-      avo-menu (>= 4.0.1.beta.12)
       zeitwerk (>= 2.6.12)
 
 GEM
@@ -468,9 +456,11 @@ PLATFORMS
 DEPENDENCIES
   annotate (~> 3.2)
   avo (>= 4.0.0.beta)
-  avo-advanced (>= 4.0.0.beta)!
   avo-audit_logging (>= 4.0.0.beta)!
+  avo-dashboards (>= 4.0.0)!
+  avo-dynamic_filters (>= 4.0.0)!
   avo-licensing (>= 4.0.0.beta)!
+  avo-menu (>= 4.0.0)!
   avo-money_field
   bootsnap
   brakeman
