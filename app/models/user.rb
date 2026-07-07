@@ -31,5 +31,6 @@ class User < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
-  def is_developer? = true
+  def is_developer? = roles[:developer]
+  def is_admin? = roles[:admin]
 end
