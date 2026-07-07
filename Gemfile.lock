@@ -1,11 +1,23 @@
 GEM
   remote: https://packager.dev/avo-hq/
   specs:
+    avo-advanced_search (4.0.1)
+      avo (>= 4.0.8)
+      avo-licensing (>= 4.0.1)
+      turbo-rails
+      view_component (>= 3.7.0)
+      zeitwerk (>= 2.6.12)
     avo-audit_logging (4.0.0)
       avo (>= 4.0.0)
       avo-diff_field (>= 0.0.5)
       avo-licensing (>= 4.0.0)
       zeitwerk (>= 2.6.12)
+    avo-authorization (4.0.0)
+      avo (>= 4.0.0)
+      avo-licensing (>= 4.0.0)
+    avo-custom_controls (4.0.0)
+      avo (>= 4.0.0)
+      avo-licensing (>= 4.0.0)
     avo-dashboards (4.0.1)
       avo (>= 4.0.6)
       avo-licensing (>= 4.0.1)
@@ -25,6 +37,22 @@ GEM
       avo (>= 4.0.2)
       avo-licensing (>= 4.0.1)
       docile
+      zeitwerk (>= 2.6.12)
+    avo-nested (4.0.0)
+      avo (>= 4.0.0)
+      avo-licensing (>= 4.0.0)
+      zeitwerk (>= 2.6.12)
+    avo-record_reordering (4.0.0)
+      avo (>= 4.0.0)
+      avo-licensing (>= 4.0.0)
+      turbo-rails
+      view_component (>= 3.7.0)
+      zeitwerk (>= 2.6.12)
+    avo-scopes (4.0.1)
+      avo (>= 4.0.8)
+      avo-licensing (>= 4.0.1)
+      turbo-rails
+      view_component (>= 3.7.0)
       zeitwerk (>= 2.6.12)
 
 GEM
@@ -456,12 +484,18 @@ PLATFORMS
 DEPENDENCIES
   annotate (~> 3.2)
   avo (>= 4.0.0.beta)
+  avo-advanced_search (>= 4.0.0.beta)!
   avo-audit_logging (>= 4.0.0.beta)!
-  avo-dashboards (>= 4.0.0)!
-  avo-dynamic_filters (>= 4.0.0)!
+  avo-authorization (>= 4.0.0.beta)!
+  avo-custom_controls (>= 4.0.0.beta)!
+  avo-dashboards (>= 4.0.0.beta)!
+  avo-dynamic_filters (>= 4.0.0.beta)!
   avo-licensing (>= 4.0.0.beta)!
-  avo-menu (>= 4.0.0)!
+  avo-menu (>= 4.0.0.beta)!
   avo-money_field
+  avo-nested (>= 4.0.0.beta)!
+  avo-record_reordering (>= 4.0.0.beta)!
+  avo-scopes (>= 4.0.0.beta)!
   bootsnap
   brakeman
   capybara
