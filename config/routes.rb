@@ -3,6 +3,10 @@ Rails.application.routes.draw do
 
   devise_for :users
 
+  # Outside the authenticate block: AI clients and API callers bring their own credentials.
+  mount_avo_mcp_server
+  mount_avo_api
+
   authenticate :user do
     mount_avo
   end

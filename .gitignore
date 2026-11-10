@@ -36,3 +36,7 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# Local bundle against unreleased add-ons (see AVO_GEMS_PATH in the Gemfile).
+/Gemfile.local
+/Gemfile.local.lock
