@@ -24,6 +24,10 @@ class Product < ApplicationRecord
     "Wearables": 3
   }
 
+  LOW_STOCK = 10
+
+  scope :low_stock, -> { where(quantity: ..LOW_STOCK) }
+
   belongs_to :warehouse, optional: true
   belongs_to :user, optional: true
 
@@ -37,6 +41,10 @@ class Product < ApplicationRecord
     self.save!
 
     user.update!(updated_at: Time.current)
+  end
+
+  def restock!(units)
+    update!(quantity: quantity + units)
   end
 
   after_update_commit :update_warehouse_value
