@@ -1,0 +1,306 @@
+/* The guided tour: Avo the avocado, his speech bubble and the spotlight he points at. Markup in
+   app/views/avo/partials/_tour.html.erb, behavior in app/assets/javascripts/avo-overrides.js. */
+
+.tour {
+  --tour-skin: #3f6b2e;
+  --tour-ink: #1d2b4f;
+  --tour-glow: #e9a23b;
+  --tour-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The dimming is the spotlight's own shadow, so clicks still reach the page under it. One level under him. */
+.tour__spotlight {
+  position: fixed;
+  z-index: 59;
+  border-radius: 0.625rem;
+  outline: 2px solid var(--tour-glow);
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.5);
+  pointer-events: none;
+}
+
+/* The controller places him in viewport pixels, so the origin is the physical top left corner. He stands over the
+   chat bar (avo-ai's 60), whose window he opens and talks about, and under the panel's notifications (100). */
+.tour__guide {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 61;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.375rem;
+  width: max-content;
+}
+
+.tour__guide--flip {
+  flex-direction: row-reverse;
+}
+
+/* Only while he walks to a new stop: following a scroll has to be instant. */
+.tour--gliding .tour__guide {
+  transition: transform 0.5s var(--tour-ease);
+}
+
+.tour--gliding .tour__spotlight {
+  transition: top 0.5s var(--tour-ease), left 0.5s var(--tour-ease), width 0.5s var(--tour-ease),
+    height 0.5s var(--tour-ease);
+}
+
+/* The avocado */
+
+.tour__mascot {
+  flex: none;
+  width: 6.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: default;
+}
+
+.tour__mascot:focus-visible {
+  border-radius: 0.75rem;
+  outline: 2px solid var(--tour-glow);
+  outline-offset: 2px;
+}
+
+.tour[data-mode="idle"] .tour__mascot {
+  width: 3.5rem;
+  cursor: pointer;
+}
+
+.tour__avocado {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 4px 5px rgb(0 0 0 / 0.28));
+  transition: transform 0.25s var(--tour-ease);
+}
+
+.tour[data-mode="idle"] .tour__mascot:hover .tour__avocado {
+  transform: translateY(-3px) rotate(-5deg);
+}
+
+.tour__shadow {
+  fill: var(--tour-ink);
+  opacity: 0.22;
+}
+
+.tour__limb {
+  stroke: var(--tour-skin);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tour__hand {
+  fill: var(--tour-skin);
+}
+
+.tour__finger {
+  stroke-width: 0.7;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tour__arm--pointing .tour__finger {
+  opacity: 1;
+}
+
+.tour__body {
+  transform-origin: 12px 21.5px;
+  animation: tour-breathe 3.2s ease-in-out infinite;
+}
+
+.tour__arm {
+  transition: transform 0.5s var(--tour-ease);
+}
+
+.tour__arm--left {
+  transform-origin: 5.6px 13.4px;
+  transform: rotate(var(--tour-arm-left, 102deg));
+}
+
+.tour__arm--right {
+  transform-origin: 18.4px 13.4px;
+  transform: rotate(var(--tour-arm-right, 78deg));
+}
+
+.tour--waving .tour__arm--right {
+  animation: tour-wave 0.5s ease-in-out infinite alternate;
+}
+
+.tour__ink {
+  fill: var(--tour-ink);
+}
+
+.tour__cheek {
+  fill: #f08a6b;
+  opacity: 0.5;
+}
+
+.tour__eyes {
+  transform-origin: 12px 8.6px;
+  animation: tour-blink 4.6s infinite;
+}
+
+.tour__smile {
+  stroke: var(--tour-ink);
+  stroke-width: 0.5;
+  stroke-linecap: round;
+}
+
+.tour__chatter {
+  transform-origin: 12px 10.5px;
+  opacity: 0;
+}
+
+.tour--talking .tour__smile {
+  opacity: 0;
+}
+
+.tour--talking .tour__chatter {
+  opacity: 1;
+  animation: tour-chatter 0.16s ease-in-out infinite alternate;
+}
+
+/* The speech bubble */
+
+.tour__bubble {
+  position: relative;
+  box-sizing: border-box;
+  width: 20rem;
+  max-width: calc(100vw - 8rem);
+  margin-bottom: 1.75rem;
+  padding: 0.875rem 1rem 0.75rem;
+  border: 1px solid var(--color-tertiary);
+  border-radius: 0.875rem;
+  background: var(--color-primary);
+  color: var(--color-content);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 14px 30px -8px rgb(0 0 0 / 0.35);
+}
+
+/* The tail: a corner of a turned square, on the side he stands. */
+.tour__bubble::before {
+  position: absolute;
+  bottom: 0.875rem;
+  inset-inline-start: -0.4375rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1px solid var(--color-tertiary);
+  border-block-start: 0;
+  border-inline-end: 0;
+  background: inherit;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.tour__guide--flip .tour__bubble::before {
+  inset-inline: auto -0.4375rem;
+  transform: rotate(225deg);
+}
+
+.tour__text {
+  margin: 0;
+  padding-inline-end: 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.tour__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+.tour__counter {
+  margin-inline-end: auto;
+  color: var(--color-content-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tour__close {
+  position: absolute;
+  top: 0.375rem;
+  inset-inline-end: 0.375rem;
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.375rem;
+  background: none;
+  color: var(--color-content-secondary);
+  cursor: pointer;
+  place-items: center;
+}
+
+.tour__close:hover {
+  background: var(--color-secondary);
+  color: var(--color-content);
+}
+
+.tour__close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The sound switch, beside the close button. The line makes room for both. */
+.tour__mute {
+  inset-inline-end: 2rem;
+}
+
+.tour__bubble:has(.tour__mute:not([hidden])) .tour__text {
+  padding-inline-end: 2.875rem;
+}
+
+/* Below Tailwind's sm breakpoint he is smaller, so the bubble keeps most of a phone's width. */
+@media (max-width: 40rem) {
+  .tour__mascot {
+    width: 4.5rem;
+  }
+}
+
+@keyframes tour-breathe {
+  50% {
+    transform: scale(0.985, 1.02);
+  }
+}
+
+@keyframes tour-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes tour-chatter {
+  from {
+    transform: scaleY(0.35);
+  }
+}
+
+@keyframes tour-wave {
+  from {
+    transform: rotate(-25deg);
+  }
+
+  to {
+    transform: rotate(-65deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour *,
+  .tour *::before {
+    transition: none !important;
+    animation: none !important;
+  }
+}

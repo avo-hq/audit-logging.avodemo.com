@@ -1,0 +1,120 @@
+# What Avo the avocado says on the guided tour, one stop per entry, in order.
+#
+#   text    what he says. One or two short sentences.
+#   voice   the same line as he performs it out loud: with ElevenLabs' emotion tags, ending in [short pause] so the
+#           last syllable is not clipped. After editing one, record it: bin/rails tour:voices
+#   target  what he points at, as a CSS selector. Several matches are lit as one area. Without one he talks
+#           from his corner.
+#   path    the page the stop is on, under the panel's root. He goes there first.
+#   open    a preview icon whose popover he opens while he talks.
+#   click   what he clicks when the stop starts, every match. Match it only while the click is still needed, so a
+#           second visit to the stop does nothing.
+#   type    what he types into the target, a key at a time. With enter: true he presses Enter after it.
+#   place   where he stands when the default (right, below, above, left) reads badly.
+<%
+  # The latest edit made in the panel whose save changed another record too: its page has a changeset,
+  # Impacted records and an Undo button.
+  change = Avo::AuditLogging::ActivityPivot.where(targeted: false).joins(:activity)
+    .where(avo_audit_logging_activities: {action: "update", origin: nil}).maximum(:activity_id)
+  restocked = Product.find_by(name: "Apple TV 4K (128GB)")&.id
+  # avo-ai only learns that a provider has no key when a run fails, so ask RubyLLM before pressing Enter for real.
+  model = RubyLLM.models.find(RubyLLM.config.default_model) rescue nil
+  answers = model && RubyLLM::Provider.providers[model.provider.to_sym]&.configured?(RubyLLM.config)
+  ask = "Which products are running low on stock?"
+  sidebar = ->(path) { ".sidebar-section:has(a[href$='/resources/#{path}'])" }
+%>
+shared:
+  greeting: "Hey, I'm Avo! Welcome to Stockroom. Want the one-minute tour?"
+  sound: "Want to hear my voice, or should I keep quiet?"
+  paused:
+    text: "You wandered off. Fair. Want to pick the tour back up?"
+    voice: "[curious] You wandered off. [laughs softly] Fair. Want to pick the tour back up? [short pause]"
+  steps:
+    - text: "Picture your warehouse app. Plain Rails, plain models. Avo mounts on top of it as an engine."
+      voice: "[warmly] Picture your warehouse app. Plain Rails, plain models. [confident] Avo mounts on top of it as an engine. [short pause]"
+      path: resources/products
+
+    - text: "This whole page is a few lines of Ruby in one resource file. No front end to build."
+      voice: "[confident] This whole page is a few lines of Ruby in one resource file. [playful] No front end to build. [short pause]"
+      path: resources/products
+      target: "table thead"
+
+    - text: "Here are your models, sorted into sections: catalog, inventory, orders and team."
+      voice: "[happy] Here are your models, sorted into sections: catalog, inventory, orders, and team. [short pause]"
+      target: "<%= sidebar.("products") %>, <%= sidebar.("users") %>"
+
+    - text: "We added some add-ons too. The star is the audit log: whatever happens here gets logged."
+      voice: "[confident] We added some add-ons too. [warmly] The star is the audit log: whatever happens here gets logged. [short pause]"
+      target: "<%= sidebar.("avo_activities") %>"
+
+    - text: "The rest give it more to log. Four ways in: this panel, MCP, an API token, or the chat."
+      voice: "[playful] The rest give it more to log. [confident] Four ways in: this panel, MCP, an API token, or the chat. [short pause]"
+      target: "<%= sidebar.("mcp_connections") %>, <%= sidebar.("avo_ai/chats") %>"
+
+    - text: "Let's try the chat. It sits on every page, one click away."
+      voice: "[curious] Let's try the chat. [happy] It sits on every page, one click away. [short pause]"
+      click: ".avo_ai_bar:has(.avo_ai_bar__panel[hidden]) .avo_ai_bar__agent"
+      target: ".avo_ai_bar__panel"
+<% if answers %>
+    - text: "You ask in plain words. Watch, I'll ask it something."
+      voice: "[playful] You ask in plain words. Watch, I'll ask it something. [short pause]"
+      target: ".avo_ai_bar__panel lexxy-editor"
+      place: left
+      type: "<%= ask %>"
+      enter: true
+<% else %>
+    - text: "You ask in plain words. I typed one for you. Press Enter and it does the clicking."
+      voice: "[playful] You ask in plain words. I typed one for you. [confident] Press Enter, and it does the clicking. [short pause]"
+      target: ".avo_ai_bar__panel lexxy-editor"
+      place: left
+      type: "<%= ask %>"
+<% end %>
+
+    - text: "Now a real action. Restock asks how many units, then tops up the Apple TV."
+      voice: "[confident] Now a real action. Restock asks how many units, then tops up the Apple TV. [short pause]"
+      path: resources/products/<%= restocked %>
+      # Closes the chat window, which would sit over the page, and opens Restock unless its modal is up already.
+      click: ".avo_ai_bar__panel:not([hidden]) [data-action='chat-bar#minimizePanel'], body:not(:has(#modal_frame form)) .header__controls a[href*='Actions%3A%3ARestock']"
+      target: "#modal_frame .modal__card"
+
+    - text: "Run. That was you, in the panel, for real. So it got logged."
+      voice: "[happy] Run! [playful] That was you, in the panel, for real. So it got logged. [short pause]"
+      path: resources/products/<%= restocked %>
+      click: "#modal_frame button[type='submit'][data-target='submit_action']"
+      target: ".field-wrapper[data-field-id='quantity']"
+
+    - text: "Here's the audit log. On top: you, running Restock, a moment ago."
+      voice: "[warmly] Here's the audit log. [happy] On top: you, running Restock, a moment ago. [short pause]"
+      path: resources/avo_activities
+      target: "table[aria-label='Audit log'] tbody tr:first-child"
+
+    - text: "Origin says how it came in: the panel, MCP, an API token, a job, even a rake task."
+      voice: "[curious] Origin says how it came in: the panel, MCP, an API token, a job, even a rake task. [short pause]"
+      path: resources/avo_activities
+      target: "td[data-field-id='origin']"
+      place: left
+
+    - text: "Filter by origin, and here's what the AI chat changed. Logged like everyone else."
+      voice: "[confident] Filter by origin, and here's what the AI chat changed. [laughs softly] Logged like everyone else. [short pause]"
+      path: resources/avo_activities?filters%5Borigin%5D%5Bis%5D%5B%5D=ai_chat
+      target: "table[aria-label='Audit log'] tbody"
+
+    - text: "Nosy? Same. Peek at a change without leaving the list."
+      voice: "[playful] Nosy? [laughs softly] Same. Peek at a change without leaving the list. [short pause]"
+      path: resources/avo_activities?filters%5Borigin%5D%5Bis%5D%5B%5D=ai_chat
+      # An update's icon: an update has a before and an after to show.
+      open: "tr:has(td[data-field-id='action'] .icon-tabler-progress-check) [data-controller~='preview']"
+      target: ".tippy-box[data-theme~='preview']"
+
+    - text: "Every change has its own page. Before, after, and what the record says today."
+      voice: "[warmly] Every change has its own page. [confident] Before, after, and what the record says today. [short pause]"
+      path: resources/avo_activities/<%= change %>
+      target: ".card:has(.audit-changeset__row)"
+
+    - text: "One save can change other records too. They're all here, and Undo puts them back."
+      voice: "[curious] One save can change other records too. [reassuring] They're all here, and Undo puts them back. [short pause]"
+      path: resources/avo_activities/<%= change %>
+      target: "#has_many_field_show_activity_pivots .panel"
+
+    - text: "That's Avo on your app: your models, a bit of DSL, and everything logged. Go poke around."
+      voice: "[happy] That's Avo on your app: your models, a bit of DSL, and everything logged. [playful] Go poke around. [short pause]"

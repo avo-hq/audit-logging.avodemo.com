@@ -84,6 +84,8 @@ Avo.configure do |config|
   }
 
   config.profile_menu = -> {
+    # The way back to the guided tour, also after "Don't ask again".
+    link_to "Take the tour", path: "#{config.root_path}/resources/products?tour=1", icon: "tabler/outline/map-pin"
     link_to "Stop impersonating", path: Avo::Engine.routes.url_helpers.stop_impersonating_path, icon: "user-circle", method: :post
   }
 end

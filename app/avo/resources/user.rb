@@ -38,7 +38,7 @@ class Avo::Resources::User < Avo::BaseResource
     field :products, as: :has_many
 
     if Avo::AuditLogging.configuration.enabled?
-      field :avo_authored, as: :has_many, name: "Activity"
+      field :avo_authored, as: :has_many, name: "Audit log"
     end
   end
 
