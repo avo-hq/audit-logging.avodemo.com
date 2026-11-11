@@ -15,6 +15,9 @@
 #           enter: true he presses Enter after it. A plain field is emptied again when he moves on.
 #   wait    a button the visitor presses themselves. The stop has no Next: it moves on once that button's form has
 #           gone through.
+#   expect  what his typing should bring, such as the chat's answer.
+#   retry   what he clicks twice, to close and open again, when what the stop expects or waits for has not come
+#           after eight seconds: the chat's tab, which loads the chat's window anew.
 #   query   added to the address of the table the target is, when that table loads on its own inside the page: what
 #           ticking its filters would add.
 #   place   where he stands when the default (right, below, above, left) reads badly.
@@ -35,6 +38,8 @@
   token = Avo::Api::Token.find_by(name: "Inventory sync")&.id
   # The product the chat named last, which the tour goes on to restock: the last link to one in the chat's window.
   product = ".avo_ai_bar__panel a[href*='/resources/products/']"
+  # The open chat's tab. A click closes its window, and the next one opens it and loads what the chat holds.
+  tab = ".avo_ai_bar__tab:first-child .avo_ai_bar__tab-select"
   sidebar = ->(path) { ".sidebar-section:has(a[href$='/resources/#{path}'])" }
 %>
 shared:
@@ -120,6 +125,8 @@ shared:
       place: left
       type: "Which products are running low on stock?"
       enter: true
+      expect: "<%= product %>"
+      retry: "<%= tab %>"
 
     - text: "Restock got its own button here: [Custom controls](https://avohq.io/addons/custom-controls)."
       voice: "[confident] Restock got its own button here: Custom controls. [short pause]"
@@ -139,6 +146,7 @@ shared:
       type: "Restock this product"
       enter: true
       wait: ".avo_ai_bar__panel .avo_ai_action_form button:not([formaction])"
+      retry: "<%= tab %>"
 
     - text: "Nice! The chat ran Restock with your OK, and it got logged."
       voice: "[happy] Nice! [playful] The chat ran Restock with your OK, [confident] and it got logged. [short pause]"
