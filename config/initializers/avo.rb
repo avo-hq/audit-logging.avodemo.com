@@ -45,6 +45,8 @@ Avo.configure do |config|
 
   ## == Menus ==
   config.main_menu = -> {
+    dashboard :overview, icon: "tabler/outline/layout-dashboard"
+
     section "Catalog", icon: "tabler/outline/tag" do
       resource :product
       resource :supplier

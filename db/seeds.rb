@@ -70,8 +70,8 @@ travel_to(61.days.ago) do
         ["Northwind Electronics", "Netherlands", 5], ["Bluewater Distribution", "United States", 9],
         ["Kestrel Trading", "Germany", 4], ["Harbor Lane Supply", "United Kingdom", 7],
         ["Meridian Components", "Taiwan", 21]
-      ].map do |name, country, days|
-        Supplier.create!(name: name, country: country, lead_time_days: days,
+      ].each.with_index(1).map do |(name, country, days), position|
+        Supplier.create!(name: name, country: country, lead_time_days: days, position: position,
           contact_email: "orders@#{name.parameterize.split("-").first}.example.com")
       end
 

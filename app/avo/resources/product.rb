@@ -7,6 +7,15 @@ class Avo::Resources::Product < Avo::BaseResource
 
   self.title = :name
 
+  # Restock is what the team runs most, so it gets its own button beside Edit.
+  self.show_controls = -> do
+    back_button
+    delete_button
+    actions_list exclude: [Avo::Actions::Restock]
+    action Avo::Actions::Restock, style: :outline, icon: "heroicons/outline/arrow-down-tray"
+    edit_button
+  end
+
   def fields
     panel do
       card do
@@ -33,7 +42,8 @@ class Avo::Resources::Product < Avo::BaseResource
       end
     end
 
-    field :stock_movements, as: :has_many
+    # A new product's first delivery is logged on the same form.
+    field :stock_movements, as: :has_many, nested: {on: :new, limit: 3}
     field :avo_activities, as: :has_many, name: "Activity" if Avo::AuditLogging.configuration.enabled?
   end
 

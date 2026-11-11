@@ -3,6 +3,19 @@ class Avo::Resources::Supplier < Avo::BaseResource
     activity: true
   }
 
+  self.default_sort_column = :position
+  self.default_sort_direction = :asc
+  self.ordering = {
+    visible_on: :index,
+    display_inline: true,
+    drag_and_drop: true,
+    actions: {
+      higher: -> { record.insert_at(record.position - 1) },
+      lower: -> { record.insert_at(record.position + 1) },
+      insert_at: -> { record.insert_at(position) }
+    }
+  }
+
   def fields
     panel do
       card do

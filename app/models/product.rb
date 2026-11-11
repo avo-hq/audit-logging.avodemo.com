@@ -32,6 +32,7 @@ class Product < ApplicationRecord
   belongs_to :user, optional: true
   belongs_to :supplier, optional: true
   has_many :stock_movements, dependent: :destroy
+  accepts_nested_attributes_for :stock_movements
   has_many :purchase_orders, dependent: :destroy
 
   validates_presence_of :quantity
