@@ -10,6 +10,10 @@ class Avo::Resources::User < Avo::BaseResource
 
   self.title = :email
 
+  self.search = {
+    query: -> { query.where("first_name LIKE :q OR last_name LIKE :q OR email LIKE :q", q: "%#{params[:q]}%") }
+  }
+
   self.row_controls = -> {
     action Avo::Actions::Impersonate, label: "Impersonate #{record.name}", style: :primary, color: :blue,
     icon: "heroicons/outline/identification"

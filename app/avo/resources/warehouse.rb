@@ -3,6 +3,8 @@ class Avo::Resources::Warehouse < Avo::BaseResource
     activity: true
   }
 
+  self.search = {query: -> { query.where("name LIKE ?", "%#{params[:q]}%") }}
+
   def fields
     panel do
       card do

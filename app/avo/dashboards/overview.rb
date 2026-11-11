@@ -8,5 +8,9 @@ class Avo::Dashboards::Overview < Avo::Dashboards::BaseDashboard
     card Avo::Cards::InventoryValue
     card Avo::Cards::LowStock
     card Avo::Cards::OverdueOrders
+    card Avo::Cards::ChangesLogged
+    card Avo::Cards::ChangesFromOutside
+    card Avo::Cards::StockReceived
+    card Avo::Cards::WarehouseValue
   end
 end

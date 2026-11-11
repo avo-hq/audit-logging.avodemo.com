@@ -7,6 +7,11 @@ class Avo::Resources::Product < Avo::BaseResource
 
   self.title = :name
 
+  # Global search finds a product by what a storekeeper would type: its name, its SKU or who makes it.
+  self.search = {
+    query: -> { query.where("name LIKE :q OR sku LIKE :q OR manufacturer LIKE :q", q: "%#{params[:q]}%") }
+  }
+
   # Restock is what the team runs most, so it gets its own button beside Edit.
   self.show_controls = -> do
     back_button

@@ -22,6 +22,10 @@ module AuditLoggingAvodemoCom
     # in config/environments, which are processed later.
     #
     # config.time_zone = "Central Time (US & Canada)"
+
+    # The panel's language switcher offers every language Avo ships, and some add-ons ship English only: their
+    # words read in English there instead of as missing keys. Production does this already; this covers development.
+    config.i18n.fallbacks = [:en]
     # config.eager_load_paths << Rails.root.join("extras"
     
     config.active_record.yaml_column_permitted_classes = [Symbol, Date, Time, ActiveSupport::TimeWithZone, ActiveSupport::TimeZone]

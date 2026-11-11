@@ -3,6 +3,8 @@ class Avo::Resources::Supplier < Avo::BaseResource
     activity: true
   }
 
+  self.search = {query: -> { query.where("name LIKE ?", "%#{params[:q]}%") }}
+
   self.default_sort_column = :position
   self.default_sort_direction = :asc
   self.ordering = {
