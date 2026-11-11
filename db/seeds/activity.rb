@@ -2,7 +2,6 @@
 # requests to the panel, the MCP server, the REST API and the AI chat, and from a job, a rake task, the console
 # and a sign-up page. Only the timestamps are moved afterwards, to spread the entries over the last 60 days.
 require "warden/test/helpers"
-require_relative "fake_llm"
 
 module ActivitySeed
   extend Warden::Test::Helpers
@@ -59,7 +58,7 @@ module ActivitySeed
 
   # ---------------------------------------------------------------- helpers
 
-  def staff = @staff ||= User.where(email: %w[avo@cado.com maya@example.com tomas@example.com priya@example.com jonas@example.com]).order(:id).to_a
+  def staff = @staff ||= User.team.order(:id).to_a
   def customers = User.where.not(id: staff.map(&:id)).order(:id).to_a
   def products = Product.order(:id).to_a
   def warehouses = Warehouse.order(:id).to_a

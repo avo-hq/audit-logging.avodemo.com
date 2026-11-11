@@ -1,5 +1,5 @@
-# AVO_ADMIN_PASSWORD=secret bin/rails db:seed
-# Sign in as avo@cado.com with that password, "secret" when it is unset. Re-running starts from scratch.
+# bin/rails db:seed
+# Re-running starts from scratch. Nobody signs in as the team it makes: a visitor gets an account of their own.
 
 def progress_params(total:, title:)
   {
@@ -50,7 +50,8 @@ travel_to(61.days.ago) do
       users_progress_bar = ProgressBar.create(progress_params(total: staff.size + customers_number, title: "Creating users"))
 
       staff.each do |attributes|
-        User.create!(**attributes, password: ENV.fetch("AVO_ADMIN_PASSWORD", "secret"),
+        # A password nobody knows: the team are the people in the log, and nobody signs in as them.
+        User.create!(**attributes, password: SecureRandom.hex(16),
           roles: {admin: true, manager: false, writer: false})
         users_progress_bar.increment
       end
