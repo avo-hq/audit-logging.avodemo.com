@@ -21,6 +21,7 @@
     connect() {
       if (this.lit === undefined) this.lit = []
       this.angles ||= { ...REST }
+      this.tries ||= 0
       // One player for every line: a browser lets a player speak again once a click has let it speak.
       this.voice ||= new Audio()
       // Turbo scrolls a page it renders back to the top, which can come after he has lit something low on it.
@@ -31,11 +32,13 @@
       this.onKey = (event) => this.key(event)
       this.onFocus = () => this.unfocus()
       this.onPick = (event) => (this.theirs = event.target.closest?.(FIELDS))
+      this.onSend = (event) => this.sending(event)
       this.onSent = (event) => this.sent(event)
       document.addEventListener("turbo:load", this.onLoad)
       document.addEventListener("keydown", this.onKey)
       document.addEventListener("focusin", this.onFocus)
       document.addEventListener("pointerdown", this.onPick)
+      document.addEventListener("turbo:submit-start", this.onSend)
       document.addEventListener("turbo:submit-end", this.onSent)
 
       // In development the search results open under a notice about resources with no search: ticked away here,
@@ -51,6 +54,7 @@
       document.removeEventListener("keydown", this.onKey)
       document.removeEventListener("focusin", this.onFocus)
       document.removeEventListener("pointerdown", this.onPick)
+      document.removeEventListener("turbo:submit-start", this.onSend)
       document.removeEventListener("turbo:submit-end", this.onSent)
       cancelAnimationFrame(this.frame)
     }
@@ -132,10 +136,36 @@
 
     // The visitor's turn: a stop that waits for a button has no Next, and moves on once the form that button sent has
     // gone through. By the button, because a card's Cancel sends the same form.
+    sending({ detail }) {
+      // Told apart as it starts. By its end the chat may have swapped the card over its live connection, and a
+      // button that has left the page matches no selector.
+      if (this.waiting && detail.formSubmission.submitter?.matches(this.waiting)) this.awaited = detail.formSubmission
+    }
+
     sent({ detail }) {
+      if (detail.formSubmission !== this.awaited) return
+
+      this.awaited = null
+      if (detail.success && this.waiting) this.next()
+    }
+
+    // The button the visitor is waiting for has not come. The chat sends its answer over a live connection, and one
+    // that went out before this page was listening is only on the server: loading the chat's window again shows it.
+    recover() {
+      const wait = this.waiting
+      if (!wait || document.querySelector(wait)) return (this.asked = null)
+
+      this.asked ||= Date.now()
+      if (Date.now() - this.asked < 5000 || this.tries >= 3) return
+
+      this.asked = Date.now()
+      this.tries += 1
+      this.lit?.map((element) => element.closest("turbo-frame[src]")).find(Boolean)?.reload()
+    }
+
+    get waiting() {
       const { mode, index } = this.saved
-      const wait = mode === "running" && this.copy.steps[index]?.wait
-      if (wait && detail.success && detail.formSubmission.submitter?.matches(wait)) this.next()
+      return mode === "running" && this.copy.steps[index]?.wait
     }
 
     // Where the tour stands
@@ -197,6 +227,7 @@
 
     go(index) {
       this.acted = false
+      this.tries = 0
       this.untype()
       const path = this.path(index)
       if (!path || path === location.pathname + location.search) return this.save({ mode: "running", index })
@@ -468,7 +499,10 @@
 
     follow() {
       this.frames = (this.frames || 0) + 1
-      if (this.frames % 20 === 0) this.relight()
+      if (this.frames % 20 === 0) {
+        this.relight()
+        this.recover()
+      }
       this.position()
       this.frame = requestAnimationFrame(() => this.follow())
     }
