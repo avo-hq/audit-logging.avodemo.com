@@ -1,0 +1,220 @@
+# What Avo the avocado says on the guided tour, one stop per entry, in order.
+#
+#   text    what he says. One or two short sentences, with at most one link written [label](url).
+#   voice   the same line as he performs it out loud, a link as its plain words: with ElevenLabs' emotion tags,
+#           ending in [short pause] so the last syllable is not clipped. After editing one: bin/rails tour:voices
+#   target  what he points at, as a CSS selector. Several matches are lit as one area. Without one he talks
+#           from his corner.
+#   path    the page the stop is on, under the panel's root. He goes there first.
+#   follow  instead of a path: a link on screen that leads to the stop's page. The last match, as the product the
+#           chat named last. The stops after it that stay on that page repeat it.
+#   open    a preview icon whose popover he opens while he talks.
+#   click   what he clicks when the stop starts, every match. Match it only while the click is still needed, so a
+#           second visit to the stop does nothing.
+#   type    what he types into the target's field (a plain field or the chat's box), a key at a time. With
+#           enter: true he presses Enter after it. A plain field is emptied again when he moves on.
+#   wait    a button the visitor presses themselves. The stop has no Next: it moves on once that button's form has
+#           gone through.
+#   query   added to the address of the table the target is, when that table loads on its own inside the page: what
+#           ticking its filters would add.
+#   place   where he stands when the default (right, below, above, left) reads badly.
+<%
+  # Every visitor has an account of their own (User.visitor), and others take the tour at the same time: what he
+  # calls "yours" is looked up by who is signed in.
+  me = Avo::Current.user&.id
+  # The visitor's latest Restock, which the chat ran for them a few stops back. Its page has the quantity before and
+  # after, and the records it also changed: a stock movement and the warehouse.
+  restock = Avo::AuditLogging::Activity.where(action: "handle", activity_class: "Avo::Actions::Restock", author_id: me)
+    .maximum(:id)
+  # Two stops list the visitor and the seed's team: a full table with no other visitor's row in it.
+  authors = [me, *User.team.ids].map { |id| "filters%5Bauthor%5D%5Bis%5D%5B%5D=#{id}" }.join("&")
+  # A teammate from the seed whose work came in three ways, the MCP connection (his Cursor) behind some of it, and
+  # another teammate's API token.
+  tomas = User.find_by(email: "tomas@example.com")&.id
+  cursor = Avo::McpServer::Connection.find_by(user_id: tomas)&.id
+  token = Avo::Api::Token.find_by(name: "Inventory sync")&.id
+  # The product the chat named last, which the tour goes on to restock: the last link to one in the chat's window.
+  product = ".avo_ai_bar__panel a[href*='/resources/products/']"
+  sidebar = ->(path) { ".sidebar-section:has(a[href$='/resources/#{path}'])" }
+%>
+shared:
+  greeting: "Hey, I'm Avo! Welcome to Stockroom. Want the tour? It takes a few minutes."
+  sound: "Want to hear my voice, or should I keep quiet?"
+  paused:
+    text: "You wandered off. Fair. Want to pick the tour back up?"
+    voice: "[curious] You wandered off. [laughs softly] Fair. Want to pick the tour back up? [short pause]"
+  steps:
+    - text: "Picture your warehouse app. Plain Rails, plain models. Avo mounts on top of it as an engine."
+      voice: "[warmly] Picture your warehouse app. Plain Rails, plain models. [confident] Avo mounts on top of it as an engine. [short pause]"
+      path: resources/products
+
+    - text: "This whole page is a few lines of Ruby in one resource file. No front end to build."
+      voice: "[confident] This whole page is a few lines of Ruby in one resource file. [playful] No front end to build. [short pause]"
+      path: resources/products
+      # The resource's own part of the page: what that file draws.
+      target: "#main-content"
+
+    - text: "Avo has add-ons too, and this app runs a dozen of them. Let's take a quick lap."
+      voice: "[happy] Avo has add-ons too, and this app runs a dozen of them. [playful] Let's take a quick lap. [short pause]"
+
+    - text: "Your models sit in sections. That's the [Menu editor](https://avohq.io/addons/menu-editor) add-on."
+      voice: "[confident] Your models sit in sections. That's the Menu editor add-on. [short pause]"
+      target: "<%= sidebar.("products") %>, <%= sidebar.("users") %>"
+
+    - text: "Find any record from the top bar: [Global search](https://avohq.io/addons/global-search)."
+      voice: "[confident] Find any record from the top bar: Global search. [short pause]"
+      # The field and, once they arrive, the results it opens.
+      target: "#global-search-input, .global-search__dropdown"
+      type: "Apple"
+      place: below
+
+    - text: "The views you use daily, as tabs: [Scopes](https://avohq.io/addons/scopes)."
+      voice: "[warmly] The views you use daily, as tabs: Scopes. [short pause]"
+      path: resources/products
+      target: ".tabs:has(.tabs__item-wrapper--scope)"
+
+    - text: "Filter on any field, pin the ones you need: [Dynamic filters](https://avohq.io/addons/dynamic-filters)."
+      voice: "[confident] Filter on any field, pin the ones you need: Dynamic filters. [short pause]"
+      path: resources/products
+      target: ".main-filters-panel"
+
+    - text: "The numbers that matter, on one page: [Dashboards](https://avohq.io/addons/dashboards). The cards go above your tables too, or anywhere you like."
+      voice: "[happy] The numbers that matter, on one page: Dashboards. [confident] The cards go above your tables too, or anywhere you like. [short pause]"
+      path: dashboards/overview
+      target: ".dashboard-card"
+
+    - text: "Drag suppliers into the order you call them. That's the [Record reordering](https://avohq.io/addons/record-reordering) add-on."
+      # "The" in front makes Record the noun, stressed on its first syllable. Alone after a colon it reads as the verb.
+      voice: "[playful] Drag suppliers into the order you call them. [confident] That's the Record reordering add-on. [short pause]"
+      path: resources/suppliers
+      target: "table tbody td:has(.handle)"
+      place: left
+
+    - text: "While you create a product, add its stock movements in the same form. That's [Nested records](https://avohq.io/addons/nested-records)."
+      voice: "[warmly] While you create a product, [confident] add its stock movements in the same form. That's Nested records. [short pause]"
+      path: resources/products/new
+      # Adds one empty delivery row, unless the form shows one already.
+      click: ".panel:not(:has([data-field-id='kind'])) [data-action='click->avo-nested-form#add']"
+      target: ".panel:has([data-action='click->avo-nested-form#add'])"
+
+    - text: "The star is [Audit logging](https://avohq.io/audit-logging). It logs all four ways into your app."
+      voice: "[warmly] The star is Audit logging. [confident] It logs all four ways into your app. [short pause]"
+      path: resources/products
+      target: "<%= sidebar.("avo_activities") %>"
+
+    - text: "One is this panel: the log calls it UI. Two: AI agents connect over [MCP](https://avohq.io/addons/mcp)."
+      voice: "[confident] One is this panel: the log calls it UI. Two: AI agents connect over MCP. [short pause]"
+      target: ".sidebar-section a[href$='/resources/mcp_connections']"
+
+    - text: "Three: the [API](https://avohq.io/addons/api). With a token, another app talks to this one like any REST API."
+      voice: "[confident] Three: the API. With a token, another app talks to this one like any REST API. [short pause]"
+      target: ".sidebar-section a[href$='/resources/avo_api/tokens']"
+
+    - text: "Four: a chat on every page, from the [AI](https://avohq.io/addons/ai) add-on."
+      voice: "[happy] Four: a chat on every page, from the AI add-on. [short pause]"
+      click: ".avo_ai_bar:has(.avo_ai_bar__panel[hidden]) .avo_ai_bar__agent"
+      target: ".avo_ai_bar__panel"
+    - text: "You ask in plain words. Watch, I'll ask it something."
+      voice: "[playful] You ask in plain words. Watch, I'll ask it something. [short pause]"
+      target: ".avo_ai_bar__panel lexxy-editor"
+      place: left
+      type: "Which products are running low on stock?"
+      enter: true
+
+    - text: "Restock got its own button here: [Custom controls](https://avohq.io/addons/custom-controls)."
+      voice: "[confident] Restock got its own button here: Custom controls. [short pause]"
+      follow: "<%= product %>"
+      # The chat window would sit over the page. Its buttons only match while it is open.
+      click: ".avo_ai_bar__panel:not([hidden]) [data-action='chat-bar#minimizePanel']"
+      target: ".header__controls a[href*='Actions%3A%3ARestock']"
+
+    - text: "No need to click it. I'll ask the chat to restock, then you press Run."
+      voice: "[playful] No need to click it. [confident] I'll ask the chat to restock, then you press Run. [short pause]"
+      follow: "<%= product %>"
+      # The same chat, opened again from its tab: the first one, as the latest used.
+      click: ".avo_ai_bar:has(.avo_ai_bar__panel[hidden]) .avo_ai_bar__tab:first-child .avo_ai_bar__tab-select"
+      # The box he types into and, once the chat answers, its card: the Run on it is the visitor's to press.
+      target: ".avo_ai_bar__panel .avo_ai_action_form, .avo_ai_bar__panel lexxy-editor"
+      place: left
+      type: "Restock this product"
+      enter: true
+      wait: ".avo_ai_bar__panel .avo_ai_action_form button:not([formaction])"
+
+    - text: "Nice! The chat ran Restock with your OK, and it got logged."
+      voice: "[happy] Nice! [playful] The chat ran Restock with your OK, [confident] and it got logged. [short pause]"
+      follow: "<%= product %>"
+      # The page still shows the old quantity. The chat's card has a Refresh page button for that.
+      click: ".avo_ai_bar__panel [data-action='page-refresh#refresh']"
+      target: ".field-wrapper[data-field-id='quantity']"
+      place: below
+
+    - text: "Here's the audit log. The first row is you, running Restock a moment ago."
+      voice: "[warmly] Here's the audit log. [happy] The first row is you, running Restock a moment ago. [short pause]"
+      # No other visitor is in this list, so the first row is theirs even when someone ran Restock a second later.
+      path: resources/avo_activities?<%= authors %>
+      # The chat has done its part, and would sit over the table.
+      click: ".avo_ai_bar__panel:not([hidden]) [data-action='chat-bar#minimizePanel']"
+      # Their restock's row by its id: whatever else lands in the list, he never points at someone else's.
+      target: "table[aria-label='Audit log'] tbody tr[data-record-id='<%= restock %>']"
+
+    - text: "Origin says how it came in: the panel, MCP, an API token, a job, even a rake task."
+      voice: "[confident] Origin says how it came in: the panel, MCP, an API token, a job, even a rake task. [short pause]"
+      path: resources/avo_activities
+      target: "td[data-field-id='origin']"
+      place: left
+
+    - text: "Filter by origin, and here's what the AI chat changed. Logged like everyone else."
+      voice: "[confident] Filter by origin, and here's what the AI chat changed. [laughs softly] Logged like everyone else. [short pause]"
+      path: resources/avo_activities?filters%5Borigin%5D%5Bis%5D%5B%5D=ai_chat
+      target: "table[aria-label='Audit log'] tbody"
+
+    - text: "Nosy? Same. Peek at a change without leaving the list."
+      voice: "[playful] Nosy? [laughs softly] Same. Peek at a change without leaving the list. [short pause]"
+      # The visitor's and the team's chat entries only: every visitor's restock is a row under this origin, and in
+      # time they would push the seed's rows, the ones with a preview, off the first page.
+      path: resources/avo_activities?filters%5Borigin%5D%5Bis%5D%5B%5D=ai_chat&<%= authors %>
+      # The first row that has a preview: a change to one record. A restock changes three, and has none.
+      open: "table[aria-label='Audit log'] tbody tr [data-controller~='preview']"
+      target: ".tippy-box[data-theme~='preview']"
+
+    - text: "Every change has its own page. This is your restock, with the quantity before and after."
+      voice: "[warmly] Every change has its own page. [confident] This is your restock, with the quantity before and after. [short pause]"
+      path: resources/avo_activities/<%= restock %>
+      target: ".card:has(.audit-changeset__row)"
+
+    - text: "One save can change other records too. Your restock also logged a stock movement and changed its warehouse."
+      voice: "[confident] One save can change other records too. [playful] Your restock also logged a stock movement, and changed its warehouse. [short pause]"
+      path: resources/avo_activities/<%= restock %>
+      # Coming back from the next stop, its Undo form is still open over the page.
+      click: "#modal_frame [data-action='click->modal#close']"
+      target: "#has_many_field_show_activity_pivots .panel"
+
+    - text: "Now let's undo it. Undo puts the product back, and you choose: only that, or everything it set off too."
+      voice: "[playful] Now let's undo it. [confident] Undo puts the product back, and you choose: only that, or everything it set off too. [short pause]"
+      path: resources/avo_activities/<%= restock %>
+      # The page's own Undo, while its form is not open yet. Running it is the visitor's choice.
+      click: "body:not(:has(#modal_frame form)) .header__controls a[href*='Actions%3A%3AUndo']"
+      target: "#modal_frame .modal__card"
+
+    - text: "Every user's page shows all they did, and where from. Here's Tomas, filtered to MCP and the AI chat."
+      voice: "[warmly] Every user's page shows all they did, and where from. [confident] Here's Tomas, filtered to MCP and the AI chat. [short pause]"
+      path: resources/users/<%= tomas %>
+      target: "#has_many_field_show_avo_authored"
+      # Two of the ways in, as ticked on the table's Origin filter. Unfiltered, its first page is all panel work.
+      query: "filters[origin][is][]=mcp_connection&filters[origin][is][]=ai_chat"
+      place: above
+
+    - text: "Same for an MCP connection: you see exactly what it did. This one is Tomas's Cursor."
+      voice: "[confident] Same for an MCP connection: you see exactly what it did. [playful] This one is Tomas's Cursor. [short pause]"
+      path: resources/mcp_connections/<%= cursor %>
+      target: "#has_many_field_show_audit_trail"
+      place: above
+
+    - text: "And for the API: every call a token made. This one is Jonas's Inventory sync."
+      voice: "[confident] And for the API: every call a token made. [playful] This one is Jonas's Inventory sync. [short pause]"
+      path: resources/avo_api/tokens/<%= token %>
+      target: "#has_many_field_show_audit_trail"
+      place: above
+
+    - text: "That's Avo on your app: your models, a bit of DSL, and everything logged. Go poke around."
+      voice: "[happy] That's Avo on your app: your models, a bit of DSL, and everything logged. [playful] Go poke around. [short pause]"

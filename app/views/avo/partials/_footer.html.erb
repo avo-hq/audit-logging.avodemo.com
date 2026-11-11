@@ -1,0 +1,7 @@
+<%# Core's footer line, kept as it is. The tour rides along because this is the partial the layout renders on every
+    page that no add-on needs: avo-ai's chat bar already owns avo/partials/_scripts. %>
+<div class="text-center text-sm text-content-secondary <%= "print:hidden" if Avo.configuration.hide_layout_when_printing %>">
+  <a href="https://avohq.io/" target="_blank">Avo</a> &middot; &copy; <%= Date.today.year %> AvoHQ &middot; v<%= Avo::VERSION %>
+</div>
+
+<%= render partial: "avo/partials/tour" %>

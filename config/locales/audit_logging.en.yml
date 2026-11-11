@@ -1,0 +1,5 @@
+en:
+  avo:
+    audit_logging:
+      origins:
+        supplier_feed: "Supplier feed"

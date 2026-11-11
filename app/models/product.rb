@@ -24,8 +24,16 @@ class Product < ApplicationRecord
     "Wearables": 3
   }
 
+  LOW_STOCK = 10
+
+  scope :low_stock, -> { where(quantity: ..LOW_STOCK) }
+
   belongs_to :warehouse, optional: true
   belongs_to :user, optional: true
+  belongs_to :supplier, optional: true
+  has_many :stock_movements, dependent: :destroy
+  accepts_nested_attributes_for :stock_movements
+  has_many :purchase_orders, dependent: :destroy
 
   validates_presence_of :quantity
   validates_presence_of :price_cents
@@ -37,6 +45,13 @@ class Product < ApplicationRecord
     self.save!
 
     user.update!(updated_at: Time.current)
+  end
+
+  def restock!(units, note: "Restock")
+    transaction do
+      update!(quantity: quantity + units)
+      stock_movements.create!(kind: :receipt, quantity: units, warehouse: warehouse, note: note)
+    end
   end
 
   after_update_commit :update_warehouse_value

@@ -73,6 +73,14 @@ Rails.application.configure do
   # Uncomment if you wish to allow Action Cable access from any origin.
   # config.action_cable.disable_request_forgery_protection = true
 
+  # A tunnel, for looking at the demo on a phone. Rails refuses a host it does not know, and the chat's live
+  # updates refuse a page from another address.
+  config.hosts += [".ngrok-free.app", ".ngrok.app", ".ngrok.dev", ".ngrok.io"]
+  config.action_cable.allowed_request_origins = [
+    %r{\Ahttps?://(localhost|127\.0\.0\.1)(:\d+)?\z},
+    %r{\Ahttps://[\w-]+\.ngrok(-free)?\.(app|dev|io)\z}
+  ]
+
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
 

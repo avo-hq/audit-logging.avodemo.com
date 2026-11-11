@@ -56,24 +56,35 @@ group :test do
   gem "selenium-webdriver"
 end
 
-gem "avo", ">= 4.0.0.beta"
+AVO_ADD_ONS = %w[
+  avo-licensing avo-authorization avo-dashboards avo-menu avo-advanced_search avo-record_reordering avo-scopes
+  avo-custom_controls avo-dynamic_filters avo-nested avo-audit_logging avo-api avo-mcp_server avo-ai
+].freeze
 
-source "https://packager.dev/avo-hq/" do
-  gem "avo-dashboards", ">= 4.0.0.beta"
-  gem "avo-menu", ">= 4.0.0.beta"
-  gem "avo-advanced_search", ">= 4.0.0.beta"
-  gem "avo-authorization", ">= 4.0.0.beta"
-  gem "avo-record_reordering", ">= 4.0.0.beta"
-  gem "avo-scopes", ">= 4.0.0.beta"
-  gem "avo-custom_controls", ">= 4.0.0.beta"
-  gem "avo-dynamic_filters", ">= 4.0.0.beta"
-  gem "avo-nested", ">= 4.0.0.beta"
-  gem "avo-licensing", ">= 4.0.0.beta"
-  gem "avo-audit_logging", ">= 4.0.0.beta"
+# AVO_GEMS_PATH bundles unreleased add-ons from a workspace checkout. Set it only through an uncommitted
+# Gemfile.local (BUNDLE_GEMFILE=Gemfile.local), so Gemfile.lock keeps resolving from packager.dev.
+if (local_gems = ENV["AVO_GEMS_PATH"])
+  gem "avo", path: ENV.fetch("AVO_CORE_PATH")
+  AVO_ADD_ONS.each { |name| gem name, path: File.join(local_gems, name) }
+else
+  gem "avo", ">= 4.4.3"
+
+  source "https://packager.dev/avo-hq/" do
+    # The audit log the tour walks through (its list, activity page and impacted records) is 4.4.1's.
+    AVO_ADD_ONS.each { |name| gem name, (name == "avo-audit_logging") ? ">= 4.4.1" : ">= 4.4.0" }
+  end
 end
 
+# avo-dynamic_filters configures Ransack at boot but does not require it.
+gem "ransack"
+# avo-mcp_server allows mcp ~> 1.1, but its handle_json override rejects the auth_info: newer mcp passes.
+gem "mcp", "~> 1.5.0"
 gem "devise", "~> 4.9"
+# Rails' own words (dates, "3 days ago", plural rules) in the languages the panel's switcher offers.
+gem "rails-i18n"
 gem "tailwindcss-rails", "~> 4.0"
+# The dashboard's chart cards.
+gem "chartkick"
 gem "progressbar", "~> 1.13"
 gem "factory_bot_rails", "~> 6.2"
 gem "faker", "~> 3.1", ">= 3.1.1"
