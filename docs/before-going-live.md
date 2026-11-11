@@ -8,8 +8,8 @@ the rules that stay.
 | What                                                              | Until then                                              |
 | ----------------------------------------------------------------- | ------------------------------------------------------- |
 | Avo after 4.4.3: lists paginate in Romanian and Norwegian Nynorsk | `config/initializers/languages.rb` leaves the two out of the language switcher. They come back by themselves. |
-| avo-nested after 4.4.0: a write to a resource that has a nested field | Creating a product through MCP, the REST API or the AI chat fails. Product has nested stock movements. |
-| avo-api after 4.4.0: its answer to a write on such a resource     | With the avo-nested fix alone, the REST API saves the product and still answers 500. |
+| avo-nested after 4.4.0: a write to a resource that has a nested field | Creating a product through MCP or the AI chat fails. Product has nested stock movements. |
+| avo-api after 4.4.0: its answer to a write on such a resource     | Creating a product through the REST API saves it and answers 500. |
 
 The seed creates a product through all three. Run it against a build that has the avo-nested fix (`Gemfile.local`),
 or it reports PROBLEMS and loses two entries, one of them the AI chat entry stop 26 shows. With the fix it reports one
