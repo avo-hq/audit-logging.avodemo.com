@@ -21,6 +21,9 @@ Faker::Config.random = RNG
 require "active_support/testing/time_helpers"
 extend ActiveSupport::Testing::TimeHelpers
 
+# Dates the team plans against (deliveries, promised arrivals) are relative to the real today, not the travelled one.
+TODAY = Date.current
+
 # The base data is not part of the audit log: no activities and no versions. db/seeds/activity.rb makes those.
 # Made before the log's 60 days begin, so no record is newer than its first change.
 travel_to(61.days.ago) do
@@ -61,6 +64,17 @@ travel_to(61.days.ago) do
         Warehouse.create!(name: name, inventory_value_cents: 0)
       end
 
+      # --------------------------------- SUPPLIERS ---------------------------------- #
+      # Invented distributors, example.com addresses.
+      suppliers = [
+        ["Northwind Electronics", "Netherlands", 5], ["Bluewater Distribution", "United States", 9],
+        ["Kestrel Trading", "Germany", 4], ["Harbor Lane Supply", "United Kingdom", 7],
+        ["Meridian Components", "Taiwan", 21]
+      ].map do |name, country, days|
+        Supplier.create!(name: name, country: country, lead_time_days: days,
+          contact_email: "orders@#{name.parameterize.split("-").first}.example.com")
+      end
+
       # ---------------------------------- PRODUCTS ---------------------------------- #
       curated_products = [
         {name: "iPhone 15", price_usd: 799.00, manufacturer: "Apple", category: "Phones"},
@@ -99,6 +113,8 @@ travel_to(61.days.ago) do
           quantity: RNG.rand(4..50),
           is_featured: RNG.rand < 0.25,
           manufacturer: data[:manufacturer],
+          sku: "#{data[:manufacturer].first(3).upcase}-#{RNG.rand(10_000..99_999)}",
+          supplier: suppliers[data[:manufacturer].sum % suppliers.size],
           user: customers.sample(random: RNG),
           warehouse: warehouses.sample(random: RNG)
         )
@@ -106,6 +122,36 @@ travel_to(61.days.ago) do
       end
 
       warehouses.each(&:recalc_total!)
+
+      # ------------------------- ORDERS, SHIPMENTS, STOCK --------------------------- #
+      products = Product.order(:id).to_a
+      statuses = %w[received received received sent sent sent draft cancelled]
+      14.times do |i|
+        product = products.sample(random: RNG)
+        status = statuses.sample(random: RNG)
+        PurchaseOrder.create!(number: "PO-2026-#{format("%04d", 141 + i)}", supplier: product.supplier,
+          warehouse: product.warehouse, product: product, quantity: [20, 40, 60, 100].sample(random: RNG), status: status,
+          expected_on: TODAY + (status == "received" ? -RNG.rand(5..50) : RNG.rand(-6..21)))
+      end
+
+      cities = ["Rotterdam", "Lyon", "Leeds", "Hamburg", "Porto", "Milan", "Gdansk", "Bilbao", "Antwerp", "Brno"]
+      18.times do |i|
+        status = %w[delivered delivered delivered shipped shipped packing returned].sample(random: RNG)
+        Shipment.create!(reference: "SHP-#{10_412 + i}", warehouse: warehouses.sample(random: RNG),
+          carrier: %w[DHL UPS FedEx DPD].sample(random: RNG), destination: "#{Faker::Company.name}, #{cities.sample(random: RNG)}",
+          tracking_number: (RNG.rand(10**11..10**12 - 1).to_s unless status == "packing"), status: status,
+          shipped_at: (TODAY.in_time_zone - RNG.rand(1..40).days + RNG.rand(8..17).hours unless status == "packing"))
+      end
+
+      30.times do
+        product = products.sample(random: RNG)
+        kind, quantity, note = [
+          ["sale", -RNG.rand(1..4), "Storefront order"], ["sale", -RNG.rand(1..3), "Reseller order"],
+          ["adjustment", -1, "Damaged in handling"], ["transfer", RNG.rand(5..15), "Moved between bays"]
+        ].sample(random: RNG)
+        StockMovement.create!(product: product, warehouse: product.warehouse, kind: kind, quantity: quantity, note: note,
+          created_at: TODAY.in_time_zone - RNG.rand(62..120).days + RNG.rand(8..17).hours)
+      end
     end
   end
 end

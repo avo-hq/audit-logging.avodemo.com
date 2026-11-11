@@ -63,6 +63,7 @@ module ActivitySeed
   def customers = User.where.not(id: staff.map(&:id)).order(:id).to_a
   def products = Product.order(:id).to_a
   def warehouses = Warehouse.order(:id).to_a
+  def suppliers = Supplier.order(:id).to_a
 
   def session_for(user)
     session = ActionDispatch::Integration::Session.new(Rails.application)
@@ -109,8 +110,8 @@ module ActivitySeed
 
   TURBO = {"HTTP_ACCEPT" => "text/vnd.turbo-stream.html, text/html"}.freeze
 
-  def run_action(session, action, ids, **fields)
-    hit(session, :post, "/avo/resources/products/actions?action_id=#{action}",
+  def run_action(session, action, ids, resource: "products", **fields)
+    hit(session, :post, "/avo/resources/#{resource}/actions?action_id=#{action}",
       params: {fields: {avo_resource_ids: ids.join(","), avo_selected_all: "false", **fields}}, headers: TURBO)
   end
 
@@ -143,7 +144,7 @@ module ActivitySeed
           picks = products.sample(RNG.rand(1..6), random: RNG).map(&:id)
           run_action(s, "Avo::Actions::ChangePrice", picks, price: money(99, 1400), price_currency: "USD")
         end
-        run_action(s, "Avo::Actions::Restock", products.select { _1.quantity <= 12 }.sample(3, random: RNG).map(&:id), quantity: 15) if round % 5 == 2
+        run_action(s, "Avo::Actions::Restock", products.select { _1.quantity <= 12 }.sample(3, random: RNG).map(&:id), units: 15) if round % 5 == 2
         run_action(s, "Avo::Actions::AssignProduct", [products.sample(random: RNG).id], user: customers.sample(random: RNG).id) if round % 6 == 3
         run_action(s, "Avo::Actions::Standalone", []) if round == 7
 
@@ -152,7 +153,8 @@ module ActivitySeed
           hit(s, :get, "/avo/resources/products/new")
           hit(s, :post, "/avo/resources/products", params: {product: {
             name: name, manufacturer: manufacturer, category: category, price: price.to_s, price_currency: "USD",
-            quantity: RNG.rand(5..40), description: "#{manufacturer} #{name}.", warehouse_id: warehouses.sample(random: RNG).id
+            quantity: RNG.rand(5..40), description: "#{manufacturer} #{name}.", warehouse_id: warehouses.sample(random: RNG).id,
+            sku: "#{manufacturer.first(3).upcase}-#{RNG.rand(10_000..99_999)}", supplier_id: suppliers.sample(random: RNG).id
           }})
         end
 
@@ -173,6 +175,38 @@ module ActivitySeed
           item = products.sample(random: RNG)
           hit(s, :post, "/avo/resources/users/#{owner.id}/products", params: {fields: {related_id: item.id}})
           hit(s, :delete, "/avo/resources/users/#{owner.id}/products/#{item.id}") if round % 2 == 0
+        end
+
+        if round % 4 == 3 && (order = PurchaseOrder.sent.order(:expected_on).first)
+          hit(s, :get, "/avo/resources/purchase_orders/#{order.id}")
+          run_action(s, "Avo::Actions::ReceivePurchaseOrder", [order.id], resource: "purchase_orders")
+        end
+
+        if round % 6 == 1
+          product = products.sample(random: RNG)
+          hit(s, :get, "/avo/resources/purchase_orders/new")
+          hit(s, :post, "/avo/resources/purchase_orders", params: {purchase_order: {
+            number: "PO-2026-#{format("%04d", 200 + round)}", supplier_id: product.supplier_id, product_id: product.id,
+            warehouse_id: product.warehouse_id, quantity: [24, 48, 96].sample(random: RNG), status: "sent",
+            expected_on: (@clock.to_date + RNG.rand(3..14)).iso8601
+          }})
+        end
+
+        if round % 5 == 0 && (shipment = Shipment.where(status: %w[packing shipped]).order(:id).first)
+          hit(s, :get, "/avo/resources/shipments/#{shipment.id}/edit")
+          hit(s, :patch, "/avo/resources/shipments/#{shipment.id}", params: {shipment: shipment.packing? ?
+            {status: "shipped", tracking_number: RNG.rand(10**11..10**12 - 1).to_s} : {status: "delivered"}})
+        end
+
+        if round % 5 == 3
+          product = products.sample(random: RNG)
+          hit(s, :post, "/avo/resources/stock_movements", params: {stock_movement: {product_id: product.id,
+            warehouse_id: product.warehouse_id, kind: "adjustment", quantity: -RNG.rand(1..3), note: "Cycle count"}})
+        end
+
+        if round % 7 == 4
+          supplier = suppliers.sample(random: RNG)
+          hit(s, :patch, "/avo/resources/suppliers/#{supplier.id}", params: {supplier: {lead_time_days: supplier.lead_time_days + 2}})
         end
 
         # Recorded before the save runs, so a save that fails validation still leaves an entry.
@@ -226,10 +260,13 @@ module ActivitySeed
       second = products.sample(random: RNG)
       call.call("update_record", {resource: "Product", id: second.id.to_s, attributes: {is_featured: !second.is_featured}})
       call.call("run_action", {resource: "Product", action: "Avo::Actions::Restock",
-        record_ids: products.sample(2, random: RNG).map { _1.id.to_s }, fields: {quantity: 10}})
+        record_ids: products.sample(2, random: RNG).map { _1.id.to_s }, fields: {units: 10}})
       if index == 0
         call.call("create_record", {resource: "Product", attributes: {name: "Anker 737 Power Bank", manufacturer: "Anker",
-          category: "Phones", price: "109.99", quantity: 30, description: "Created from Claude Code."}})
+          category: "Phones", price: "109.99", quantity: 30, sku: "ANK-73701", description: "Created from Claude Code."}})
+      end
+      if index == 2 && (late = Shipment.shipped.order(:id).first)
+        call.call("update_record", {resource: "Shipment", id: late.id.to_s, attributes: {status: "delivered"}})
       end
       if index == 1
         gone = Product.find_by(name: NEW_PRODUCTS.last.first)
@@ -294,7 +331,8 @@ module ActivitySeed
     return unless index.zero?
 
     hit(api, :post, "/api/resources/v1/products", headers: headers, params: {product: {name: "Logitech MX Master 3S",
-      manufacturer: "Logitech", category: "Computers", price: "99.99", price_currency: "USD", quantity: 25, description: "Synced from the ERP."}})
+      manufacturer: "Logitech", category: "Computers", price: "99.99", price_currency: "USD", quantity: 25, sku: "LOG-30310",
+      description: "Synced from the ERP."}})
   end
 
   # -------------------------------------------------------------------- AI
@@ -310,7 +348,7 @@ module ActivitySeed
         tool: "create_record", input: {resource: "Product", attributes: [
           {field: "name", value: "Bose QuietComfort Earbuds"}, {field: "manufacturer", value: "Bose"},
           {field: "category", value: "Music players"}, {field: "price", value: 299}, {field: "quantity", value: 20},
-          {field: "description", value: "Bose QuietComfort Earbuds."}, {field: "warehouse", value: Warehouse.find_by!(name: "Central Hub").id.to_s}
+          {field: "description", value: "Bose QuietComfort Earbuds."}, {field: "sku", value: "BOS-58820"}, {field: "warehouse", value: Warehouse.where("name LIKE ?", "Central Hub%").first!.id.to_s}
         ]},
         title: "New Bose earbuds", after: "Added the Bose QuietComfort Earbuds: $299, 20 in stock at the Central Hub."
       }

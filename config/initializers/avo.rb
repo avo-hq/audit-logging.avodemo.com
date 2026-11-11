@@ -16,6 +16,8 @@ Avo.configure do |config|
   config.explicit_authorization = true
 
   ## == Customization ==
+  config.app_name = "Stockroom"
+  config.container_width = :full
   config.click_row_to_view_record = true
 
   config.turbo = -> do
@@ -43,9 +45,22 @@ Avo.configure do |config|
 
   ## == Menus ==
   config.main_menu = -> {
-    section "Resources", icon: "table-cells" do
+    section "Catalog", icon: "tabler/outline/tag" do
       resource :product
+      resource :supplier
+    end
+
+    section "Inventory", icon: "tabler/outline/building-warehouse" do
       resource :warehouse
+      resource :stock_movement
+    end
+
+    section "Orders", icon: "tabler/outline/truck" do
+      resource :purchase_order
+      resource :shipment
+    end
+
+    section "Team", icon: "tabler/outline/users" do
       resource :user
     end
 

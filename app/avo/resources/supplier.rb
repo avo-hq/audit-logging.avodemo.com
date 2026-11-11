@@ -1,0 +1,24 @@
+class Avo::Resources::Supplier < Avo::BaseResource
+  self.audit_logging = {
+    activity: true
+  }
+
+  def fields
+    panel do
+      card do
+        field :id, as: :id
+        field :name, as: :text, link_to_record: true
+        field :contact_email, as: :text
+        field :country, as: :text, filterable: {type: :select, options: -> { ::Supplier.distinct.order(:country).pluck(:country) }}
+        field :lead_time_days, as: :number, name: "Lead time (days)"
+      end
+
+      sidebar do
+        tool Avo::ResourceTools::Timeline
+      end
+    end
+
+    field :products, as: :has_many
+    field :purchase_orders, as: :has_many
+  end
+end

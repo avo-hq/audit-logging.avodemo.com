@@ -12,6 +12,7 @@ class Avo::Resources::Product < Avo::BaseResource
       card do
         field :id, as: :id
         field :name, as: :text, filterable: true
+        field :sku, as: :text, name: "SKU"
         field :manufacturer, as: :text, sortable: true, filterable: {
           type: :select, options: -> { ::Product.distinct.order(:manufacturer).pluck(:manufacturer) }, pinned: true
         }
@@ -21,6 +22,7 @@ class Avo::Resources::Product < Avo::BaseResource
         field :is_featured, as: :boolean, filterable: {pinned: true}
         field :category, as: :select, enum: ::Product.categories, filterable: {pinned: true}
         field :warehouse, as: :belongs_to
+        field :supplier, as: :belongs_to
         field :user, as: :belongs_to, name: "Owner"
       end
 
@@ -31,6 +33,7 @@ class Avo::Resources::Product < Avo::BaseResource
       end
     end
 
+    field :stock_movements, as: :has_many
     field :avo_activities, as: :has_many, name: "Activity" if Avo::AuditLogging.configuration.enabled?
   end
 

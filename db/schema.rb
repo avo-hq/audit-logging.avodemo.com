@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_10_160457) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_11_090300) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -314,8 +314,26 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_10_160457) do
     t.integer "warehouse_id"
     t.integer "price_cents", default: 0, null: false
     t.string "price_currency", default: "USD", null: false
+    t.integer "supplier_id"
+    t.string "sku"
+    t.index ["supplier_id"], name: "index_products_on_supplier_id"
     t.index ["user_id"], name: "index_products_on_user_id"
     t.index ["warehouse_id"], name: "index_products_on_warehouse_id"
+  end
+
+  create_table "purchase_orders", force: :cascade do |t|
+    t.string "number", null: false
+    t.integer "supplier_id", null: false
+    t.integer "warehouse_id", null: false
+    t.integer "product_id", null: false
+    t.integer "quantity", null: false
+    t.integer "status", default: 0, null: false
+    t.date "expected_on"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_purchase_orders_on_product_id"
+    t.index ["supplier_id"], name: "index_purchase_orders_on_supplier_id"
+    t.index ["warehouse_id"], name: "index_purchase_orders_on_warehouse_id"
   end
 
   create_table "ruby_llm_batches", force: :cascade do |t|
@@ -418,6 +436,40 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_10_160457) do
     t.check_constraint "status IN ('pending', 'succeeded', 'failed', 'cancelled')"
   end
 
+  create_table "shipments", force: :cascade do |t|
+    t.string "reference", null: false
+    t.integer "warehouse_id", null: false
+    t.string "carrier", null: false
+    t.string "tracking_number"
+    t.string "destination", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "shipped_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["warehouse_id"], name: "index_shipments_on_warehouse_id"
+  end
+
+  create_table "stock_movements", force: :cascade do |t|
+    t.integer "product_id", null: false
+    t.integer "warehouse_id"
+    t.integer "kind", null: false
+    t.integer "quantity", null: false
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_stock_movements_on_product_id"
+    t.index ["warehouse_id"], name: "index_stock_movements_on_warehouse_id"
+  end
+
+  create_table "suppliers", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "contact_email"
+    t.string "country"
+    t.integer "lead_time_days", default: 7, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "first_name"
     t.string "last_name"
@@ -466,6 +518,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_10_160457) do
   add_foreign_key "avo_mcp_server_access_grants", "avo_mcp_server_connections", column: "connection_id"
   add_foreign_key "avo_mcp_server_access_tokens", "avo_mcp_server_connections", column: "connection_id"
   add_foreign_key "avo_mcp_server_events", "avo_mcp_server_connections", column: "connection_id"
+  add_foreign_key "products", "suppliers"
   add_foreign_key "products", "users"
   add_foreign_key "products", "warehouses"
+  add_foreign_key "purchase_orders", "products"
+  add_foreign_key "purchase_orders", "suppliers"
+  add_foreign_key "purchase_orders", "warehouses"
+  add_foreign_key "shipments", "warehouses"
+  add_foreign_key "stock_movements", "products"
+  add_foreign_key "stock_movements", "warehouses"
 end

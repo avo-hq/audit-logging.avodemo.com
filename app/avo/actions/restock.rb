@@ -6,11 +6,11 @@ class Avo::Actions::Restock < Avo::BaseAction
   }
 
   def fields
-    field :quantity, as: :number, default: 25, help: "Units to add to each product"
+    field :units, as: :number, default: 25, help: "Units to add to each product"
   end
 
   def handle(query:, fields:, **)
-    query.each { |product| product.restock!(fields[:quantity].to_i) }
+    query.each { |product| product.restock!(fields[:units].to_i) }
     succeed "Restocked #{query.size} #{"product".pluralize(query.size)}"
   end
 end

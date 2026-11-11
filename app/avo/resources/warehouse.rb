@@ -20,5 +20,7 @@ class Avo::Resources::Warehouse < Avo::BaseResource
     end
 
     field :products, as: :has_many
+    field :shipments, as: :has_many
+    field :purchase_orders, as: :has_many, name: "Incoming orders"
   end
 end
