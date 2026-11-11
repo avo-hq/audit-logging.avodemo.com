@@ -59,6 +59,9 @@ What each stop key means is in the header of `config/tour.yml`. Behaviour is in
 - That file works around two timing traps and explains both. avo-ai loses an answer sent before the page is on the
   chat's stream. SQLite fails one of two jobs that write at the same instant, and
   `default_transaction_mode: immediate` made that worse when tried.
+- An answer can still be missed, most often on a server that has just started. A stop that names what it `expect`s,
+  or the button it `wait`s for, closes and reopens the chat's window (`retry`) when that has not come, which loads
+  what the chat holds.
 - Any other question goes to the real model and needs `ANTHROPIC_API_KEY`.
 
 ## Data
@@ -74,6 +77,8 @@ What each stop key means is in the header of `config/tour.yml`. Behaviour is in
 
 - Walk the tour as a brand-new visitor, at desktop and at phone width.
 - A test browser cannot play sound or press real keys. Report those as not checked.
+- Close a test browser when its walk is done. A tour left open keeps animating, and a dozen of them slow a laptop
+  until every timing check fails.
 - A page load straight onto a stop skips what the stops before it set up: the chat stop is opened by the one before.
   Walk into it.
 

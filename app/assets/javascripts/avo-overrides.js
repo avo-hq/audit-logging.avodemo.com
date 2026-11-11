@@ -149,18 +149,23 @@
       if (detail.success && this.waiting) this.next()
     }
 
-    // The button the visitor is waiting for has not come. The chat sends its answer over a live connection, and one
-    // that went out before this page was listening is only on the server: loading the chat's window again shows it.
-    recover() {
-      const wait = this.waiting
-      if (!wait || document.querySelector(wait)) return (this.asked = null)
+    // What the stop expects has not come: the chat's answer, or the button the visitor is to press. The chat sends
+    // over a live connection, and what went out before this page was listening is only on the server. Closing its
+    // window and opening it again loads what the chat holds.
+    async recover() {
+      const { mode, index } = this.saved
+      const step = mode === "running" && this.copy.steps[index]
+      const expected = step && (step.expect || step.wait)
+      if (!expected || !step.retry || document.querySelector(expected)) return (this.asked = null)
 
       this.asked ||= Date.now()
-      if (Date.now() - this.asked < 5000 || this.tries >= 3) return
+      if (Date.now() - this.asked < 8000 || this.tries >= 3) return
 
       this.asked = Date.now()
       this.tries += 1
-      this.lit?.map((element) => element.closest("turbo-frame[src]")).find(Boolean)?.reload()
+      document.querySelector(step.retry)?.click()
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      document.querySelector(step.retry)?.click()
     }
 
     get waiting() {

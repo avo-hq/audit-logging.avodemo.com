@@ -106,11 +106,12 @@ module FakeLlm
 
   # avo-ai sends an answer to the chat's own live stream, which a page joins only once the chat exists. A model's
   # seconds cover that gap. A turn's first reply from here would be out before that, and never shown, so it waits up
-  # to two seconds for the page.
+  # to four seconds for the page, and a moment more: Action Cable finishes adding a subscriber after it says so.
   def wait_for_page(request)
     asked = Avo::Ai::Message.where(role: "user").where("content LIKE ?", "%#{prompt_in(request["messages"].first)}%")
     chat = asked.order(:id).last&.chat
-    20.times { on_stream?(chat) ? break : sleep(0.1) } if chat
+    40.times { on_stream?(chat) ? break : sleep(0.1) } if chat
+    sleep 0.2
   end
 
   def joined(stream, by) = JOINED.compute(stream) { |pages| pages.to_i + by }
