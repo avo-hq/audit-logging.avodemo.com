@@ -17,10 +17,6 @@
   change = Avo::AuditLogging::ActivityPivot.where(targeted: false).joins(:activity)
     .where(avo_audit_logging_activities: {action: "update", origin: nil}).maximum(:activity_id)
   restocked = Product.find_by(name: "Apple TV 4K (128GB)")&.id
-  # avo-ai only learns that a provider has no key when a run fails, so ask RubyLLM before pressing Enter for real.
-  model = RubyLLM.models.find(RubyLLM.config.default_model) rescue nil
-  answers = model && RubyLLM::Provider.providers[model.provider.to_sym]&.configured?(RubyLLM.config)
-  ask = "Which products are running low on stock?"
   sidebar = ->(path) { ".sidebar-section:has(a[href$='/resources/#{path}'])" }
 %>
 shared:
@@ -37,7 +33,7 @@ shared:
     - text: "This whole page is a few lines of Ruby in one resource file. No front end to build."
       voice: "[confident] This whole page is a few lines of Ruby in one resource file. [playful] No front end to build. [short pause]"
       path: resources/products
-      target: "table thead"
+      target: "#main-content"
 
     - text: "Avo has add-ons too, and this app runs a dozen of them. Quick lap!"
       voice: "[happy] Avo has add-ons too, and this app runs a dozen of them. [playful] Quick lap! [short pause]"
@@ -96,20 +92,12 @@ shared:
       voice: "[happy] Four: a chat on every page, from the AI add-on. [short pause]"
       click: ".avo_ai_bar:has(.avo_ai_bar__panel[hidden]) .avo_ai_bar__agent"
       target: ".avo_ai_bar__panel"
-<% if answers %>
     - text: "You ask in plain words. Watch, I'll ask it something."
       voice: "[playful] You ask in plain words. Watch, I'll ask it something. [short pause]"
       target: ".avo_ai_bar__panel lexxy-editor"
       place: left
-      type: "<%= ask %>"
+      type: "Which products are running low on stock?"
       enter: true
-<% else %>
-    - text: "You ask in plain words. I typed one for you. Press Enter and it does the clicking."
-      voice: "[playful] You ask in plain words. I typed one for you. [confident] Press Enter, and it does the clicking. [short pause]"
-      target: ".avo_ai_bar__panel lexxy-editor"
-      place: left
-      type: "<%= ask %>"
-<% end %>
 
     - text: "Restock got its own button here: [Custom controls](https://avohq.io/addons/custom-controls)."
       voice: "[confident] Restock got its own button here: Custom controls. [short pause]"

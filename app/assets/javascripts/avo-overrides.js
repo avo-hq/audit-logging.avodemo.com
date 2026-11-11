@@ -30,8 +30,10 @@
         this.lit?.[0]?.scrollIntoView({ block: "nearest" })
       }
       this.onKey = (event) => event.key === "Escape" && !this.element.hidden && !this.bubbleTarget.hidden && this.end()
+      this.onFocus = () => this.unfocus()
       document.addEventListener("turbo:load", this.onLoad)
       document.addEventListener("keydown", this.onKey)
+      document.addEventListener("focusin", this.onFocus)
 
       if (new URLSearchParams(location.search).has("tour")) this.replay()
       this.sync()
@@ -41,6 +43,7 @@
     disconnect() {
       document.removeEventListener("turbo:load", this.onLoad)
       document.removeEventListener("keydown", this.onKey)
+      document.removeEventListener("focusin", this.onFocus)
       cancelAnimationFrame(this.frame)
     }
 
@@ -234,6 +237,9 @@
       const run = (this.run = {})
       this.lit = null
 
+      if (click || type) this.quiet = run
+      this.drawer(target)
+
       const icon = open && (await this.find(open))[0]
       if (run !== this.run) return
       this.peek(icon)
@@ -242,6 +248,7 @@
       const buttons = click ? await this.find(click, true) : []
       if (run !== this.run) return
       buttons.forEach((button) => button.click())
+      setTimeout(() => this.unfocus(), 500)
 
       const found = target ? await this.find(target) : []
       if (run !== this.run) return
@@ -257,30 +264,56 @@
       if (type && found[0]) this.type(found[0], type, enter, run)
     }
 
-    // Types into the lit field a key at a time, as the browser's own typing does, so a rich editor takes it too.
-    async type(field, text, enter, run) {
+    // Types into the lit rich editor a key at a time through its value, never focusing it: on a phone focus would
+    // bring up the keyboard.
+    async type(editor, text, enter, run) {
       const pause = () => new Promise((resolve) => setTimeout(resolve, 45))
-      const input = field.matches("[contenteditable]") ? field : field.querySelector("[contenteditable]") || field
-      if (input.textContent.trim() === text) return
+      const line = document.createElement("p")
+      if (editor.textContent.trim() === text) return
 
-      input.focus()
-      document.execCommand("selectAll")
-      document.execCommand("delete")
-      for (const key of text) {
+      for (let length = 1; length <= text.length; length++) {
         await pause()
         if (run !== this.run) return
-        document.execCommand("insertText", false, key)
+        line.textContent = text.slice(0, length)
+        editor.value = line.outerHTML
       }
       await pause()
       if (enter && run === this.run) {
+        const input = editor.querySelector("[contenteditable]") || editor
         input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }))
       }
+      setTimeout(() => this.unfocus(), 500)
+    }
+
+    // On a phone a focused field brings up the keyboard, and what he opens focuses one: the chat's composer, the
+    // action's first field. While a stop that clicks or types is on, no field keeps focus.
+    unfocus() {
+      const focused = document.activeElement
+      const touch = matchMedia("(pointer: coarse)").matches
+      const field = focused?.matches("input, textarea, select, [contenteditable]")
+      if (touch && field && this.quiet === this.run) focused.blur()
+    }
+
+    // On a phone the menu is a drawer. He opens it for a stop that points into it, and shuts it once he moves on.
+    drawer(target) {
+      const toggle = document.querySelector("[data-sidebar-toggle-icon]")
+      if (this.opened && toggle?.dataset.sidebarState !== "open") this.opened = false
+
+      const matches = target ? [...document.querySelectorAll(target)] : []
+      const items = matches.filter((item) => item.closest(".avo-sidebar"))
+      // The closed drawer waits off screen, left of the window.
+      const wanted = items.length > 0 && (this.opened || !items.some((item) => item.getBoundingClientRect().right > 0))
+      if (wanted === !!this.opened || !toggle) return
+
+      toggle.click()
+      this.opened = wanted
     }
 
     // The visible matches, waited for up to a second and a half: a page's frames and popovers arrive late.
     async find(selector, hidden = false) {
       for (let attempt = 0; attempt < 30; attempt++) {
-        const visible = [...document.querySelectorAll(selector)].filter((element) => hidden || element.getClientRects().length)
+        const matches = [...document.querySelectorAll(selector)]
+        const visible = matches.filter((match) => hidden || match.getClientRects().length)
         if (visible.length) return visible
 
         await new Promise((resolve) => setTimeout(resolve, 50))
