@@ -177,7 +177,7 @@ module ActivitySeed
           hit(s, :delete, "/avo/resources/users/#{owner.id}/products/#{item.id}") if round % 2 == 0
         end
 
-        if round % 4 == 3 && (order = PurchaseOrder.sent.order(:expected_on).first)
+        if round % 8 == 3 && (order = PurchaseOrder.sent.order(:expected_on).first)
           hit(s, :get, "/avo/resources/purchase_orders/#{order.id}")
           run_action(s, "Avo::Actions::ReceivePurchaseOrder", [order.id], resource: "purchase_orders")
         end
