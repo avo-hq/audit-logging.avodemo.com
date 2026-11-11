@@ -1,15 +1,27 @@
 <%# Avo the avocado and his guided tour. Turbo keeps the node across visits, so he walks from page to page instead
     of popping back in. He is the AI agent's mark (avo/ai/_pit_core_icon) with a face, arms and legs. %>
-<% tour = Tour.new %>
-<aside id="tour" class="tour" hidden data-turbo-permanent aria-label="Guided tour"
-       data-controller="tour"
-       data-tour-steps-value="<%= tour.steps.to_json %>"
-       data-tour-greeting-value="<%= tour.greeting %>"
-       data-tour-sound-value="<%= tour.sound %>"
-       data-tour-paused-value="<%= tour.paused.to_json %>">
-  <div class="tour__spotlight" data-tour-target="spotlight" hidden></div>
+<%# His lines sit outside his node. Turbo keeps that one across visits, and this one is rendered anew on every page,
+    so a stop can point at something the visitor made a moment ago. %>
+<div id="tour-copy" hidden data-copy="<%= Tour.new.copy.to_json %>"></div>
+<aside id="tour" class="tour" hidden data-turbo-permanent aria-label="Guided tour" data-controller="tour">
+  <%# The page dimmed, with holes cut for what he points at and a ring around them. Each is drawn twice, in the mask
+      and in the ring: the area, and the icon he opened it from, which juts out of it as one shape with it. %>
+  <div class="tour__spotlight" data-tour-target="spotlight" hidden>
+    <svg width="100%" height="100%" aria-hidden="true">
+      <mask id="tour-holes" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+        <rect width="100%" height="100%" fill="#fff"/>
+        <rect rx="10" data-tour-target="hole"/>
+        <rect rx="10" data-tour-target="hole"/>
+      </mask>
+      <rect class="tour__dim" width="100%" height="100%" mask="url(#tour-holes)"/>
+      <g class="tour__ring" mask="url(#tour-holes)">
+        <rect rx="10" data-tour-target="hole"/>
+        <rect rx="10" data-tour-target="hole"/>
+      </g>
+    </svg>
+  </div>
 
-  <div class="tour__guide" data-tour-target="guide">
+  <div class="tour__guide" data-tour-target="guide" popover="manual">
     <button type="button" class="tour__mascot" data-tour-target="mascot" data-action="tour#greet" aria-label="Take the tour">
       <svg class="tour__avocado" viewBox="-2 0 28 25.5" fill="none" aria-hidden="true">
         <defs>
@@ -87,8 +99,13 @@
 
       <div class="tour__actions" data-tour-target="nav" hidden>
         <span class="tour__counter" data-tour-target="counter"></span>
-        <%= a_button(style: :text, size: :sm, type: :button, data: {action: "tour#back", tour_target: "back"}) { "Back" } %>
-        <%= a_button(style: :primary, color: :primary, size: :sm, type: :button, data: {action: "tour#next", tour_target: "next"}) { "Next" } %>
+        <%# The arrow keys turn the stops too, and the two buttons say so. %>
+        <%= a_button(style: :text, size: :sm, type: :button, data: {action: "tour#back", tour_target: "back"}, aria: {keyshortcuts: "ArrowLeft"}) do %>
+          <kbd class="tour__key" aria-hidden="true"><%= svg "tabler/outline/arrow-left" %></kbd>Back
+        <% end %>
+        <%= a_button(style: :primary, color: :primary, size: :sm, type: :button, data: {action: "tour#next", tour_target: "next"}, aria: {keyshortcuts: "ArrowRight"}) do %>
+          Next<kbd class="tour__key" aria-hidden="true"><%= svg "tabler/outline/arrow-right" %></kbd>
+        <% end %>
         <%= a_button(style: :primary, color: :primary, size: :sm, type: :button, data: {action: "tour#finish", tour_target: "done"}) { "Done" } %>
       </div>
 

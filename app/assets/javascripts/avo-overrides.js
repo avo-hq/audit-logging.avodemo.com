@@ -9,14 +9,13 @@
   const PAD = 6 // the spotlight's margin around what it lights
   const GAP = 14 // between him and what he points at
   const EDGE = 12 // the closest he gets to the edge of the window
+  const FIELDS = "input, textarea, select, [contenteditable]"
 
   class TourController extends Controller {
     static targets = [
-      "spotlight", "guide", "mascot", "leftArm", "rightArm", "bubble", "text",
+      "spotlight", "hole", "guide", "mascot", "leftArm", "rightArm", "bubble", "text",
       "greeting", "sound", "nav", "paused", "counter", "back", "next", "done", "mute", "voiceOn", "voiceOff"
     ]
-
-    static values = { steps: Array, greeting: String, sound: String, paused: Object }
 
     // Runs on every page: Turbo carries the node over, and Stimulus disconnects and connects it on the way.
     connect() {
@@ -27,14 +26,21 @@
       // Turbo scrolls a page it renders back to the top, which can come after he has lit something low on it.
       this.onLoad = () => {
         this.sync()
-        this.lit?.[0]?.scrollIntoView({ block: "nearest" })
+        this.show(this.lit?.[0])
       }
-      this.onKey = (event) => event.key === "Escape" && !this.element.hidden && !this.bubbleTarget.hidden && this.end()
+      this.onKey = (event) => this.key(event)
       this.onFocus = () => this.unfocus()
+      this.onPick = (event) => (this.theirs = event.target.closest?.(FIELDS))
+      this.onSent = (event) => this.sent(event)
       document.addEventListener("turbo:load", this.onLoad)
       document.addEventListener("keydown", this.onKey)
       document.addEventListener("focusin", this.onFocus)
+      document.addEventListener("pointerdown", this.onPick)
+      document.addEventListener("turbo:submit-end", this.onSent)
 
+      // In development the search results open under a notice about resources with no search: ticked away here,
+      // as its own "Don't show again" does.
+      document.cookie = "avo_global_search_warning_closed=true; path=/; max-age=31536000"
       if (new URLSearchParams(location.search).has("tour")) this.replay()
       this.sync()
       this.follow()
@@ -44,6 +50,8 @@
       document.removeEventListener("turbo:load", this.onLoad)
       document.removeEventListener("keydown", this.onKey)
       document.removeEventListener("focusin", this.onFocus)
+      document.removeEventListener("pointerdown", this.onPick)
+      document.removeEventListener("turbo:submit-end", this.onSent)
       cancelAnimationFrame(this.frame)
     }
 
@@ -82,6 +90,28 @@
       this.go(this.saved.index)
     }
 
+    // Escape closes him, and the right and left arrows turn the stops like slides. An arrow the page used itself (a
+    // tab row, the image viewer) is left alone.
+    key(event) {
+      if (this.element.hidden || this.bubbleTarget.hidden) return
+      if (event.key === "Escape") return this.end()
+
+      // A field he opened, like the chat's composer, has focus without the visitor choosing it. It is theirs once
+      // they click it or type in it, and from then on its arrows move their caret.
+      const field = event.target.closest?.(FIELDS)
+      if (field && event.key.length === 1) this.theirs = field
+
+      const { mode, index } = this.saved
+      const { steps } = this.copy
+      const turn = { ArrowRight: 1, ArrowLeft: -1 }[event.key]
+      const held = event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+      if (mode !== "running" || !turn || held || event.defaultPrevented || (field && field === this.theirs)) return
+      if (!steps[index + turn] || (turn > 0 && steps[index].wait)) return
+
+      event.preventDefault()
+      this.go(index + turn)
+    }
+
     greet() {
       this.save({ mode: "greeting" })
     }
@@ -98,6 +128,14 @@
     never() {
       localStorage.setItem("tour", "never")
       this.sync()
+    }
+
+    // The visitor's turn: a stop that waits for a button has no Next, and moves on once the form that button sent has
+    // gone through. By the button, because a card's Cancel sends the same form.
+    sent({ detail }) {
+      const { mode, index } = this.saved
+      const wait = mode === "running" && this.copy.steps[index]?.wait
+      if (wait && detail.success && detail.formSubmission.submitter?.matches(wait)) this.next()
     }
 
     // Where the tour stands
@@ -136,9 +174,20 @@
       history.replaceState(history.state, "", location.pathname)
     }
 
+    // His lines, read from the page each time: see the note on the node that holds them.
+    get copy() {
+      return JSON.parse(document.getElementById("tour-copy").dataset.copy)
+    }
+
     path(index) {
-      const path = this.stepsValue[index]?.path
-      return path && `${window.Avo.configuration.root_path}/${path}`
+      const { path, follow } = this.copy.steps[index] || {}
+      if (!follow) return path && `${window.Avo.configuration.root_path}/${path}`
+
+      // Where a link on screen leads: the last match, as the product the chat named last. The tab remembers it for
+      // the stops that stay on that page, where the link may be gone.
+      const link = [...document.querySelectorAll(follow)].at(-1)
+      if (link) sessionStorage.setItem("tour-followed", new URL(link.href).pathname)
+      return sessionStorage.getItem("tour-followed")
     }
 
     // By the path alone: a stop's query (a filter) is gone from the address once the page applies it.
@@ -147,6 +196,8 @@
     }
 
     go(index) {
+      this.acted = false
+      this.untype()
       const path = this.path(index)
       if (!path || path === location.pathname + location.search) return this.save({ mode: "running", index })
 
@@ -168,10 +219,12 @@
       }
 
       const scene = [mode, index, location.pathname].join()
-      if (scene === this.scene && (this.lit || []).every((element) => element.isConnected)) return
+      const same = scene === this.scene
+      if (same && (this.lit || []).every((element) => element.isConnected)) return
       this.scene = scene
 
-      const step = this.stepsValue[index] || {}
+      const copy = this.copy
+      const step = copy.steps[index] || {}
       const entering = this.element.hidden
       this.close()
       this.element.hidden = mode === "never"
@@ -188,20 +241,20 @@
       this.voiceOffTarget.hidden = this.hearing
 
       if (mode === "running") {
-        const last = index === this.stepsValue.length - 1
+        const last = index === copy.steps.length - 1
         const focused = document.activeElement === this.nextTarget
-        this.counterTarget.textContent = `${index + 1} / ${this.stepsValue.length}`
+        this.counterTarget.textContent = `${index + 1} / ${copy.steps.length}`
         this.backTarget.hidden = index === 0
-        this.nextTarget.hidden = last
+        this.nextTarget.hidden = last || !!step.wait
         this.doneTarget.hidden = !last
         if (last && focused) this.doneTarget.focus()
       }
 
       // With nothing to point at he waves: the greeting, the pause and the goodbye.
       this.element.classList.toggle("tour--waving", mode !== "idle" && !(mode === "running" && step.target))
-      const asked = { greeting: this.greetingValue, sound: this.soundValue }
-      const line = { running: step, paused: this.pausedValue }[mode] || { text: asked[mode] }
-      this.say(line.text, line.clip)
+      const line = { running: step, paused: copy.paused }[mode] || { text: copy[mode] }
+      // A page that reloads under him, as after an action, swaps what he lit: he points again and says nothing twice.
+      if (!same) this.say(line.text, line.clip)
       this.light(mode === "running" ? step : {})
       if (entering) this.animate(this.mascotTarget, [{ transform: "translateY(1rem) scale(0.6)", opacity: 0 }, {}], 450)
     }
@@ -233,16 +286,23 @@
 
     // Lights what the stop points at. While he looks for it he holds still (lit is null), so a target that is
     // there already never shows him leaving for his corner first.
-    async light({ open, click, target, place, type, enter }) {
+    async light({ open, click, target, place, type, enter, query }) {
       const run = (this.run = {})
       this.lit = null
 
       if (click || type) this.quiet = run
+      // He clicks and types once per arrival at a stop. The sound button, or a page that reloads under him, only makes
+      // him point again: the chat's question is not asked twice.
+      if (this.acted) click = type = query = null
+      this.acted = true
       this.drawer(target)
+      // A table that loads once it is in view has nothing to click until then.
+      if (target) this.show(document.querySelector(target))
 
-      const icon = open && (await this.find(open))[0]
+      // The icon he opens is lit with what it opened: it shows where to hover.
+      this.icon = (open && (await this.find(open))[0]) || null
       if (run !== this.run) return
-      this.peek(icon)
+      this.peek(this.icon)
 
       // Hidden ones too: an action's link waits inside a closed dropdown.
       const buttons = click ? await this.find(click, true) : []
@@ -253,44 +313,108 @@
       const found = target ? await this.find(target) : []
       if (run !== this.run) return
 
-      this.lit = found
+      this.point(found)
       this.side = place
-      found[0]?.scrollIntoView({ block: "nearest" })
-      this.glide()
+      this.show(found[0])
       if (found.length) {
         const hop = { transform: "translateY(-0.5rem) rotate(-6deg)", offset: 0.4 }
         this.animate(this.mascotTarget, [{ transform: "none" }, hop, { transform: "none" }], 500)
       }
-      if (type && found[0]) this.type(found[0], type, enter, run)
+      if (type) this.type(target, type, enter, run)
+      // A table that loads on its own inside the page has its own address, and its filters are part of it.
+      const table = query && found[0]?.closest("turbo-frame[src]")
+      if (table && !table.src.includes(query)) table.src = `${table.src}&${query}`
     }
 
-    // Types into the lit rich editor a key at a time through its value, never focusing it: on a phone focus would
-    // bring up the keyboard.
-    async type(editor, text, enter, run) {
-      const pause = () => new Promise((resolve) => setTimeout(resolve, 45))
-      const line = document.createElement("p")
-      if (editor.textContent.trim() === text) return
+    // Scrolls what he lights into the window. A table too tall for it, as on a phone, is shown from its top, clear
+    // of the page's sticky header.
+    show(element) {
+      if (!element) return
 
-      for (let length = 1; length <= text.length; length++) {
+      const tall = element.offsetHeight > innerHeight - 160
+      if (tall) element.style.scrollMarginTop = "5rem"
+      element.scrollIntoView({ block: tall ? "start" : "nearest" })
+    }
+
+    // What he lights can sit above him. The panel's top bar: a class lifts him over it. A modal, which the browser
+    // draws over every page layer: he joins that top layer after it, as a popover, and leaves it with the stop.
+    point(found) {
+      const bar = document.querySelector(".top-navbar")
+      this.element.classList.toggle("tour--over-bar", found.some((lit) => lit.contains(bar) || bar?.contains(lit)))
+      const guide = this.guideTarget
+      if (guide.matches(":popover-open")) guide.hidePopover()
+      if (found.some((lit) => lit.closest(":popover-open, dialog:modal"))) guide.showPopover()
+
+      this.lit = this.icon?.isConnected ? [this.icon, ...found] : found
+      this.glide()
+    }
+
+    // What the stop points at is looked up again a few times a second, with no page load to say it changed: search
+    // results arrive after he typed, the chat swaps its box once its chat exists, a card comes and goes.
+    relight() {
+      const { mode, index } = this.saved
+      const target = mode === "running" && this.copy.steps[index]?.target
+      if (!target || !this.lit) return
+
+      const found = [...document.querySelectorAll(target)].filter((match) => match.getClientRects().length)
+      // A table that fills in after he lit it grows out of the window: a change of height brings it back in.
+      const tall = found[0]?.offsetHeight
+      if (tall !== this.tall) this.show(found[0])
+      this.tall = tall
+
+      const lit = this.lit.filter((element) => element !== this.icon)
+      if (found.length !== lit.length || found.some((match, at) => match !== lit[at])) this.point(found)
+    }
+
+    // Types into the target's plain field or rich box a key at a time, through its value and never by focusing it: on
+    // a phone focus would bring up the keyboard.
+    async type(target, text, enter, run) {
+      const pause = () => new Promise((resolve) => setTimeout(resolve, 45))
+      // Looked up at every key: the chat swaps its box for another when a chat is opened from its tab.
+      const box = () => [...document.querySelectorAll(target)].find((match) => {
+        return match.matches("input, textarea, lexxy-editor") && match.getClientRects().length
+      })
+      const line = document.createElement("p")
+
+      for (let length = 1; length <= text.length + 1; length++) {
         await pause()
-        if (run !== this.run) return
+        const field = box()
+        if (run !== this.run || !field) return
+
+        const plain = field.matches("input, textarea")
+        if (length > text.length) {
+          const input = field.querySelector("[contenteditable]") || field
+          const key = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+          if (enter) input.dispatchEvent(key)
+          break
+        }
         line.textContent = text.slice(0, length)
-        editor.value = line.outerHTML
-      }
-      await pause()
-      if (enter && run === this.run) {
-        const input = editor.querySelector("[contenteditable]") || editor
-        input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }))
+        field.value = plain ? line.textContent : line.outerHTML
+        if (plain) {
+          this.typed = field
+          field.dispatchEvent(new Event("input", { bubbles: true }))
+        }
       }
       setTimeout(() => this.unfocus(), 500)
     }
 
+    // A plain field he typed into is emptied when he moves on, and a click elsewhere closes what it opened.
+    untype() {
+      const field = this.typed
+      this.typed = null
+      if (!field?.isConnected) return
+
+      field.value = ""
+      field.dispatchEvent(new Event("input", { bubbles: true }))
+      document.body.click()
+    }
+
     // On a phone a focused field brings up the keyboard, and what he opens focuses one: the chat's composer, the
-    // action's first field. While a stop that clicks or types is on, no field keeps focus.
+    // action's first field. While a stop that clicks or types is on, only a field the visitor tapped keeps focus.
     unfocus() {
       const focused = document.activeElement
       const touch = matchMedia("(pointer: coarse)").matches
-      const field = focused?.matches("input, textarea, select, [contenteditable]")
+      const field = focused?.matches(FIELDS) && focused !== this.theirs
       if (touch && field && this.quiet === this.run) focused.blur()
     }
 
@@ -343,6 +467,8 @@
     // Nothing is written unless something moved.
 
     follow() {
+      this.frames = (this.frames || 0) + 1
+      if (this.frames % 20 === 0) this.relight()
       this.position()
       this.frame = requestAnimationFrame(() => this.follow())
     }
@@ -368,13 +494,11 @@
       if (!guide.style.transform) this.element.classList.remove("tour--gliding")
 
       // Sized while still hidden, so a spotlight that comes back appears in place instead of sliding in.
-      const spotlight = this.spotlightTarget
       if (box) {
-        Object.assign(spotlight.style, {
-          top: `${box.top}px`, left: `${box.left}px`, width: `${box.width}px`, height: `${box.height}px`
-        })
+        const [area, bump] = this.shape(box)
+        this.holeTargets.forEach((hole, at) => this.cut(hole, at % 2 ? bump : area, area))
       }
-      spotlight.hidden = !box
+      this.spotlightTarget.hidden = !box
 
       guide.classList.toggle("tour__guide--flip", flip)
       guide.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
@@ -388,11 +512,42 @@
 
     // The area that holds every lit element, kept inside the window. Null when none of it is on screen.
     box() {
-      const rects = this.lit.map((element) => element.getBoundingClientRect()).filter((rect) => rect.width)
+      return this.area(this.lit)
+    }
+
+    // The boxes the spotlight is cut from. One around everything lit. Or two, when he opened it from an icon: the
+    // area, and the icon reaching into it, so the ring runs around both as one shape.
+    shape(box) {
+      const icon = this.lit.includes(this.icon) && this.area([this.icon])
+      const area = icon && this.area(this.lit.filter((element) => element !== this.icon))
+      if (!area) return [box]
+
+      const reach = 12
+      const top = icon.top > area.bottom - reach ? area.bottom - reach : icon.top
+      const bottom = icon.bottom < area.top + reach ? area.top + reach : icon.bottom
+      const left = icon.left > area.right - reach ? area.right - reach : icon.left
+      const right = icon.right < area.left + reach ? area.left + reach : icon.right
+      return [area, { left, top, width: right - left, height: bottom - top }]
+    }
+
+    // A hole's place, as attributes and as styles: the styles are what glides, where a browser can.
+    cut(hole, box, area) {
+      const { left, top, width, height } = box || { left: area.left, top: area.top, width: 0, height: 0 }
+      Object.entries({ x: left, y: top, width, height }).forEach(([name, value]) => {
+        hole.setAttribute(name, value)
+        hole.style[name] = `${value}px`
+      })
+    }
+
+    area(elements) {
+      const rects = elements.map((element) => element.getBoundingClientRect()).filter((rect) => rect.width)
       if (!rects.length) return null
 
+      // Clear of the panel's top bar, which would hide the ring's top edge. Not when he is lifted over the bar.
+      const lifted = this.element.classList.contains("tour--over-bar")
+      const bar = (!lifted && document.querySelector(".top-navbar")?.getBoundingClientRect().bottom) || 0
       const left = Math.max(Math.min(...rects.map((rect) => rect.left)) - PAD, 4)
-      const top = Math.max(Math.min(...rects.map((rect) => rect.top)) - PAD, 4)
+      const top = Math.max(Math.min(...rects.map((rect) => rect.top)) - PAD, bar + 4)
       const right = Math.min(Math.max(...rects.map((rect) => rect.right)) + PAD, this.width - 4)
       const bottom = Math.min(Math.max(...rects.map((rect) => rect.bottom)) + PAD, innerHeight - 4)
 
@@ -409,7 +564,8 @@
       const beside = document.querySelector(".avo_ai_bar__dock")?.getBoundingClientRect().left - width - 8
       const corner = { x: Math.max(this.width - width - 20, EDGE), y: innerHeight - height - 64, flip: true }
       if (this.element.dataset.mode === "idle" && beside >= EDGE) return { x: beside, y: innerHeight - height - 16 }
-      if (!box || box.width * box.height > this.width * innerHeight * 0.35) return corner
+      // Something that fills much of the window leaves him his corner, unless the stop says where to stand.
+      if (!box || (!this.side && box.width * box.height > this.width * innerHeight * 0.35)) return corner
 
       const x = Math.min(Math.max(box.left + box.width / 2 - width / 2, EDGE), this.width - width - EDGE)
       const y = Math.min(Math.max(box.top + box.height / 2 - height / 2, EDGE), innerHeight - height - EDGE)

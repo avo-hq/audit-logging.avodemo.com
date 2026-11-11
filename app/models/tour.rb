@@ -14,13 +14,8 @@ class Tour
     @copy = Rails.application.config_for(:tour)
   end
 
-  def greeting = @copy[:greeting]
-
-  def sound = @copy[:sound]
-
-  def paused = for_browser(@copy[:paused])
-
-  def steps = @copy[:steps].map { |step| for_browser(step) }
+  # What the page gets: every line, with its clip's address in place of the performed text.
+  def copy = @copy.merge(paused: for_browser(@copy[:paused]), steps: @copy[:steps].map { |step| for_browser(step) })
 
   # Every line as he performs it, emotion tags and all: what the task records.
   def spoken = [@copy[:paused], *@copy[:steps]].filter_map { |line| line[:voice] }

@@ -8,31 +8,55 @@
   --tour-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* The dimming is the spotlight's own shadow, so clicks still reach the page under it. One level under him. */
+/* The page dimmed, with holes for what he points at. Clicks still reach the page under it. One level under him. */
 .tour__spotlight {
   position: fixed;
+  inset: 0;
   z-index: 59;
-  border-radius: 0.625rem;
-  outline: 2px solid var(--tour-glow);
-  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.5);
   pointer-events: none;
+}
+
+.tour__dim {
+  fill: rgb(0 0 0 / 0.5);
+}
+
+/* A stroke centred on each hole's edge. The mask hides its inner half, and what runs through the other hole. */
+.tour__ring {
+  fill: none;
+  stroke: var(--tour-glow);
+  stroke-width: 4px;
 }
 
 /* The controller places him in viewport pixels, so the origin is the physical top left corner. He stands over the
    chat bar (avo-ai's 60), whose window he opens and talks about, and under the panel's notifications (100). */
 .tour__guide {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0 auto auto 0;
   z-index: 61;
   display: flex;
   align-items: flex-end;
   gap: 0.375rem;
   width: max-content;
+  /* He is a popover only to stand over a modal (see point). These undo what a browser gives one, open or closed. */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  color: inherit;
+  background: none;
 }
 
 .tour__guide--flip {
   flex-direction: row-reverse;
+}
+
+/* The panel's top bar is at 400. A ring around something in it, or around the whole page, has to be drawn over it. */
+.tour--over-bar .tour__spotlight {
+  z-index: 401;
+}
+
+.tour--over-bar .tour__guide {
+  z-index: 402;
 }
 
 /* Only while he walks to a new stop: following a scroll has to be instant. */
@@ -40,8 +64,8 @@
   transition: transform 0.5s var(--tour-ease);
 }
 
-.tour--gliding .tour__spotlight {
-  transition: top 0.5s var(--tour-ease), left 0.5s var(--tour-ease), width 0.5s var(--tour-ease),
+.tour--gliding .tour__spotlight rect {
+  transition: x 0.5s var(--tour-ease), y 0.5s var(--tour-ease), width 0.5s var(--tour-ease),
     height 0.5s var(--tour-ease);
 }
 
@@ -220,6 +244,22 @@
   margin-top: 0.75rem;
 }
 
+/* The key that does the same as the button it sits in. Not on a phone, which has no arrow keys. */
+.tour__key {
+  margin-inline: 0.25rem;
+}
+
+.tour__key svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+@media (pointer: coarse) {
+  .tour__key {
+    display: none;
+  }
+}
+
 .tour__counter {
   margin-inline-end: auto;
   color: var(--color-content-secondary);
@@ -309,4 +349,20 @@
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* A filter's pill puts every ticked value on one line, and the tour ticks six authors: wider than a phone, and the
+   whole page scrolled sideways. Capped at the row's width, with the values cut short. */
+.main-filters-panel > :has(.dynamic-filter-pill),
+.main-filters-panel .dropdown:has(> .dynamic-filter-pill),
+.dynamic-filter-pill {
+  max-width: 100%;
+}
+
+.dynamic-filter-pill__value {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-content: center;
 }
