@@ -1,8 +1,8 @@
 # What Avo the avocado says on the guided tour, one stop per entry, in order.
 #
-#   text    what he says. One or two short sentences.
-#   voice   the same line as he performs it out loud: with ElevenLabs' emotion tags, ending in [short pause] so the
-#           last syllable is not clipped. After editing one, record it: bin/rails tour:voices
+#   text    what he says. One or two short sentences, with at most one link written [label](url).
+#   voice   the same line as he performs it out loud, a link as its plain words: with ElevenLabs' emotion tags,
+#           ending in [short pause] so the last syllable is not clipped. After editing one: bin/rails tour:voices
 #   target  what he points at, as a CSS selector. Several matches are lit as one area. Without one he talks
 #           from his corner.
 #   path    the page the stop is on, under the panel's root. He goes there first.
@@ -24,7 +24,7 @@
   sidebar = ->(path) { ".sidebar-section:has(a[href$='/resources/#{path}'])" }
 %>
 shared:
-  greeting: "Hey, I'm Avo! Welcome to Stockroom. Want the one-minute tour?"
+  greeting: "Hey, I'm Avo! Welcome to Stockroom. Want the tour? It takes a few minutes."
   sound: "Want to hear my voice, or should I keep quiet?"
   paused:
     text: "You wandered off. Fair. Want to pick the tour back up?"
@@ -39,20 +39,61 @@ shared:
       path: resources/products
       target: "table thead"
 
-    - text: "Here are your models, sorted into sections: catalog, inventory, orders and team."
-      voice: "[happy] Here are your models, sorted into sections: catalog, inventory, orders, and team. [short pause]"
+    - text: "Avo has add-ons too, and this app runs a dozen of them. Quick lap!"
+      voice: "[happy] Avo has add-ons too, and this app runs a dozen of them. [playful] Quick lap! [short pause]"
+
+    - text: "Your models sit in sections. That's the [Menu editor](https://avohq.io/addons/menu-editor) add-on."
+      voice: "[confident] Your models sit in sections. That's the Menu editor add-on. [short pause]"
       target: "<%= sidebar.("products") %>, <%= sidebar.("users") %>"
 
-    - text: "We added some add-ons too. The star is the audit log: whatever happens here gets logged."
-      voice: "[confident] We added some add-ons too. [warmly] The star is the audit log: whatever happens here gets logged. [short pause]"
+    - text: "Find any record from the top bar: [Global search](https://avohq.io/addons/global-search)."
+      voice: "[curious] Find any record from the top bar: Global search. [short pause]"
+      target: ".global-search-input-wrapper"
+      place: below
+
+    - text: "The views you use daily, as tabs: [Scopes](https://avohq.io/addons/scopes)."
+      voice: "[warmly] The views you use daily, as tabs: Scopes. [short pause]"
+      path: resources/products
+      target: ".tabs:has(.tabs__item-wrapper--scope)"
+
+    - text: "Filter on any field, pin the ones you need: [Dynamic filters](https://avohq.io/addons/dynamic-filters)."
+      voice: "[confident] Filter on any field, pin the ones you need: Dynamic filters. [short pause]"
+      path: resources/products
+      target: ".main-filters-panel"
+
+    - text: "The numbers that matter, on one page: [Dashboards](https://avohq.io/addons/dashboards)."
+      voice: "[happy] The numbers that matter, on one page: Dashboards. [short pause]"
+      path: dashboards/overview
+      target: ".dashboard-card"
+
+    - text: "Drag suppliers into the order you call them: [Record reordering](https://avohq.io/addons/record-reordering)."
+      voice: "[playful] Drag suppliers into the order you call them: Record reordering. [short pause]"
+      path: resources/suppliers
+      target: "table tbody td:has(.handle)"
+      place: left
+
+    - text: "A new product logs its first delivery right here: [Nested records](https://avohq.io/addons/nested-records)."
+      voice: "[curious] A new product logs its first delivery right here: Nested records. [short pause]"
+      path: resources/products/new
+      # Adds one empty delivery row, unless the form shows one already.
+      click: ".panel:not(:has([data-field-id='kind'])) [data-action='click->avo-nested-form#add']"
+      target: ".panel:has([data-action='click->avo-nested-form#add'])"
+
+    - text: "The star is [Audit logging](https://avohq.io/audit-logging). It logs all four ways into your app."
+      voice: "[warmly] The star is Audit logging. [confident] It logs all four ways into your app. [short pause]"
+      path: resources/products
       target: "<%= sidebar.("avo_activities") %>"
 
-    - text: "The rest give it more to log. Four ways in: this panel, MCP, an API token, or the chat."
-      voice: "[playful] The rest give it more to log. [confident] Four ways in: this panel, MCP, an API token, or the chat. [short pause]"
-      target: "<%= sidebar.("mcp_connections") %>, <%= sidebar.("avo_ai/chats") %>"
+    - text: "One is this panel. Two: AI agents connect over [MCP](https://avohq.io/addons/mcp)."
+      voice: "[confident] One is this panel. Two: AI agents connect over MCP. [short pause]"
+      target: ".sidebar-section a[href$='/resources/mcp_connections']"
 
-    - text: "Let's try the chat. It sits on every page, one click away."
-      voice: "[curious] Let's try the chat. [happy] It sits on every page, one click away. [short pause]"
+    - text: "Three: scripts bring a token to the [API](https://avohq.io/addons/api)."
+      voice: "[playful] Three: scripts bring a token to the API. [short pause]"
+      target: ".sidebar-section a[href$='/resources/avo_api/tokens']"
+
+    - text: "Four: a chat on every page, from the [AI](https://avohq.io/addons/ai) add-on."
+      voice: "[happy] Four: a chat on every page, from the AI add-on. [short pause]"
       click: ".avo_ai_bar:has(.avo_ai_bar__panel[hidden]) .avo_ai_bar__agent"
       target: ".avo_ai_bar__panel"
 <% if answers %>
@@ -70,11 +111,17 @@ shared:
       type: "<%= ask %>"
 <% end %>
 
+    - text: "Restock got its own button here: [Custom controls](https://avohq.io/addons/custom-controls)."
+      voice: "[confident] Restock got its own button here: Custom controls. [short pause]"
+      path: resources/products/<%= restocked %>
+      # The chat window would sit over the page. Its buttons only match while it is open.
+      click: ".avo_ai_bar__panel:not([hidden]) [data-action='chat-bar#minimizePanel']"
+      target: ".header__controls a[href*='Actions%3A%3ARestock']"
+
     - text: "Now a real action. Restock asks how many units, then tops up the Apple TV."
       voice: "[confident] Now a real action. Restock asks how many units, then tops up the Apple TV. [short pause]"
       path: resources/products/<%= restocked %>
-      # Closes the chat window, which would sit over the page, and opens Restock unless its modal is up already.
-      click: ".avo_ai_bar__panel:not([hidden]) [data-action='chat-bar#minimizePanel'], body:not(:has(#modal_frame form)) .header__controls a[href*='Actions%3A%3ARestock']"
+      click: "body:not(:has(#modal_frame form)) .header__controls a[href*='Actions%3A%3ARestock']"
       target: "#modal_frame .modal__card"
 
     - text: "Run. That was you, in the panel, for real. So it got logged."

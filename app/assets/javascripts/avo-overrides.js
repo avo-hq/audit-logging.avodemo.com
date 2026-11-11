@@ -24,7 +24,11 @@
       this.angles ||= { ...REST }
       // One player for every line: a browser lets a player speak again once a click has let it speak.
       this.voice ||= new Audio()
-      this.onLoad = () => this.sync()
+      // Turbo scrolls a page it renders back to the top, which can come after he has lit something low on it.
+      this.onLoad = () => {
+        this.sync()
+        this.lit?.[0]?.scrollIntoView({ block: "nearest" })
+      }
       this.onKey = (event) => event.key === "Escape" && !this.element.hidden && !this.bubbleTarget.hidden && this.end()
       document.addEventListener("turbo:load", this.onLoad)
       document.addEventListener("keydown", this.onKey)
@@ -204,7 +208,14 @@
       const quiet = () => this.element.classList.remove("tour--talking")
       const mime = () => (this.hush = setTimeout(quiet, Math.min(text.length * 30, 2400)))
 
-      this.textTarget.textContent = text
+      // A line may carry one link, written [label](url). Built as nodes, so the copy never becomes markup.
+      const [before, label, url, after] = text.split(/\[([^\]]+)\]\(([^)]+)\)/)
+      this.textTarget.replaceChildren(before)
+      if (url) {
+        const link = Object.assign(document.createElement("a"), { href: url, target: "_blank", rel: "noopener" })
+        link.textContent = label
+        this.textTarget.append(link, after)
+      }
       this.animate(this.bubbleTarget, [{ transform: "translateY(0.375rem)", opacity: 0 }, {}], 260)
       this.element.classList.add("tour--talking")
       clearTimeout(this.hush)
