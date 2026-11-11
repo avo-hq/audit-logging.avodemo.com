@@ -70,7 +70,8 @@ else
   gem "avo", ">= 4.4.3"
 
   source "https://packager.dev/avo-hq/" do
-    AVO_ADD_ONS.each { |name| gem name, ">= 4.4.0" }
+    # The audit log the tour walks through (its list, activity page and impacted records) is 4.4.1's.
+    AVO_ADD_ONS.each { |name| gem name, (name == "avo-audit_logging") ? ">= 4.4.1" : ">= 4.4.0" }
   end
 end
 
@@ -79,7 +80,11 @@ gem "ransack"
 # avo-mcp_server allows mcp ~> 1.1, but its handle_json override rejects the auth_info: newer mcp passes.
 gem "mcp", "~> 1.5.0"
 gem "devise", "~> 4.9"
+# Rails' own words (dates, "3 days ago", plural rules) in the languages the panel's switcher offers.
+gem "rails-i18n"
 gem "tailwindcss-rails", "~> 4.0"
+# The dashboard's chart cards.
+gem "chartkick"
 gem "progressbar", "~> 1.13"
 gem "factory_bot_rails", "~> 6.2"
 gem "faker", "~> 3.1", ">= 3.1.1"
